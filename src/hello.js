@@ -9,4 +9,4 @@
 
 
 rust.helloWorld();
-console.log(await rust.reverse("hello world"));
+console.log(rust.reverse("hello world"));
