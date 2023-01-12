@@ -104,9 +104,9 @@ async fn main() -> Result<(), AnyError> {
 mod test {
     use super::*;
 
-    #[tokio::test]
-    async fn test_op_reverse_string() {
-        let result = op_hello_reverse::call("Hello".into()).await.unwrap();
+    #[test]
+    fn test_op_reverse_string() {
+        let result = op_hello_reverse::call("Hello".into()).unwrap();
         assert_eq!(result, "olleH");
     }
 }
