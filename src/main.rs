@@ -1,5 +1,4 @@
-// Copyright 2018-2023 the Deno authors. All rights reserved. MIT license.
-
+use deno_core::Extension;
 use deno_core::error::AnyError;
 use deno_core::FsModuleLoader;
 use deno_runtime::deno_broadcast_channel::InMemoryBroadcastChannel;
@@ -11,10 +10,24 @@ use deno_runtime::BootstrapOptions;
 use std::path::Path;
 use std::rc::Rc;
 use std::sync::Arc;
+use deno_core::op;
 
 fn get_error_class_name(e: &AnyError) -> &'static str {
   deno_runtime::errors::get_error_class_name(e).unwrap_or("Error")
 }
+
+#[op]
+async fn op_hello_world() -> Result<(), AnyError> {
+    println!("Hello World of Ops");
+    Ok(())
+}
+
+#[op]
+async fn op_hello_reverse(input: String) -> Result<String, AnyError> {
+  println!("Hello World of Reverse");
+    Ok(input.chars().rev().collect())
+}
+
 
 #[tokio::main]
 async fn main() -> Result<(), AnyError> {
@@ -25,6 +38,15 @@ async fn main() -> Result<(), AnyError> {
   let web_worker_event_cb = Arc::new(|_| {
     todo!("Web workers are not supported in the example");
   });
+
+  let runjs_extension = Extension::builder()
+    .ops(vec![
+        op_hello_world::decl(),
+        op_hello_reverse::decl(),
+    ])
+    .build();
+
+  println!("ARGC: {}", op_hello_reverse::decl().argc);
 
   let options = WorkerOptions {
     bootstrap: BootstrapOptions {
@@ -42,7 +64,7 @@ async fn main() -> Result<(), AnyError> {
       user_agent: "hello_runtime".to_string(),
       inspect: false,
     },
-    extensions: vec![],
+    extensions: vec![runjs_extension],
     extensions_with_js: vec![],
     startup_snapshot: None,
     unsafely_ignore_certificate_errors: None,
@@ -78,7 +100,20 @@ async fn main() -> Result<(), AnyError> {
     permissions,
     options,
   );
+  const RUNTIME_JAVASCRIPT_CORE: &str = include_str!("./runtime.js");
+  worker.execute_script("[runjs:runtime.js]", RUNTIME_JAVASCRIPT_CORE)?;
   worker.execute_main_module(&main_module).await?;
   worker.run_event_loop(false).await?;
   Ok(())
+}
+
+#[cfg(test)]
+mod test {
+  use super::*;
+
+  #[tokio::test]
+  async fn test_op_reverse_string() {
+    let result = op_hello_reverse::call("Hello".into()).await.unwrap();
+    assert_eq!(result, "olleH");
+  }
 }
