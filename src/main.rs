@@ -11,6 +11,7 @@ use deno_runtime::BootstrapOptions;
 use std::path::Path;
 use std::rc::Rc;
 use std::sync::Arc;
+use aws_sdk_s3 as s3;
 
 fn get_error_class_name(e: &AnyError) -> &'static str {
     deno_runtime::errors::get_error_class_name(e).unwrap_or("Error")
@@ -28,6 +29,16 @@ fn op_hello_reverse(input: String) -> Result<String, AnyError> {
     Ok(input.chars().rev().collect())
 }
 
+#[op]
+async fn op_aws_s3_list_buckets_async() -> Result<Vec<String>, AnyError> {
+    println!("Hello World of S3 LIst Buckets");
+    let config = aws_config::load_from_env().await;
+    let client = s3::Client::new(&config);
+    let resp = client.list_buckets().send().await?;
+    // return vec of bucket names
+    Ok(resp.buckets.unwrap().iter().map(|b| b.name.clone().unwrap()).collect::<Vec<String>>())
+}
+
 #[tokio::main]
 async fn main() -> Result<(), AnyError> {
     let module_loader = Rc::new(FsModuleLoader);
@@ -39,7 +50,7 @@ async fn main() -> Result<(), AnyError> {
     });
 
     let runjs_extension = Extension::builder()
-        .ops(vec![op_hello_world::decl(), op_hello_reverse::decl()])
+        .ops(vec![op_hello_world::decl(), op_hello_reverse::decl(), op_aws_s3_list_buckets_async::decl()])
         .build();
 
     println!("ARGC: {}", op_hello_reverse::decl().argc);

@@ -10,3 +10,6 @@
 
 rust.helloWorld();
 console.log(rust.reverse("hello world"));
+
+const buckets = await rust.listBuckets();
+console.log({buckets})
