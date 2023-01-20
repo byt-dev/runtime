@@ -1,0 +1,27 @@
+# Copyright 2018-2023 the Deno authors. All rights reserved. MIT license.
+
+[package]
+name = "byt_runtime"
+version = "0.1.0"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Provides the deno runtime library"
+
+[lib]
+name = "byt_runtime"
+path = "lib.rs"
+
+[[example]]
+name = "hello_runtime"
+path = "examples/hello.rs"
+
+[dependencies]
+deno.workspace = true
+deno_core.workspace = true
+deno_runtime.workspace = true
+aws-config.workspace = true
+aws-sdk-s3 = "0.23.0"
+tokio.workspace = true
+serde = { version = "=1.0.149", features = ["derive"] }

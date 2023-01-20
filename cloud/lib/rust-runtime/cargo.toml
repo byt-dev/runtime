@@ -1,0 +1,23 @@
+[package]
+name = "byt-aws-lambda-runtime"
+version = "0.1.0"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+readme = "README.md"
+repository.workspace = true
+
+description = "An AWS Lambda adapter for the Byt Runtime"
+[dependencies]
+lambda_http = { version = "0.7" }
+lambda_runtime = { version = "0.7" }
+tokio.workspace = true
+aws-config.workspace = true
+byt_runtime.workspace = true
+deno_core.workspace = true
+tracing = { version = "0.1", features = ["log"] }
+tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt"] }
+
+[[bin]]
+name = "bootstrap"
+path = "src/main.rs"
