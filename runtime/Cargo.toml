@@ -24,4 +24,4 @@ deno_runtime.workspace = true
 aws-config.workspace = true
 aws-sdk-s3 = "0.23.0"
 tokio.workspace = true
-serde = { version = "=1.0.149", features = ["derive"] }
+serde.workspace = true

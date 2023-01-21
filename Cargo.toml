@@ -18,3 +18,4 @@ aws-config = { version = "0.53.0" }
 deno = "1.29.4"
 deno_core = "0.167.0"
 deno_runtime = "0.93.0"
+serde = { version = "=1.0.149", features = ["derive"] }

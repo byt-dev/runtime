@@ -752,6 +752,7 @@ dependencies = [
  "deno_core",
  "lambda_http",
  "lambda_runtime",
+ "serde",
  "tokio",
  "tracing",
  "tracing-subscriber",
