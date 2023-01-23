@@ -172,7 +172,7 @@ pub async fn execute_module(
     };
 
     let permissions = PermissionsContainer::allow_all();
-    let mut worker = MainWorker::from_options(main_module.clone(), permissions, options);
+    let mut worker = MainWorker::bootstrap_from_options(main_module.clone(), permissions, options);
 
     const RUNTIME_JAVASCRIPT_CORE: &str = include_str!("./runtime.js");
     worker

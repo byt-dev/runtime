@@ -1,4 +1,3 @@
-use std::path::Path;
 use lambda_runtime::{service_fn, Error, LambdaEvent};
 use serde::{Deserialize, Serialize};
 
@@ -41,10 +40,13 @@ pub(crate) async fn my_handler(event: LambdaEvent<Request>) -> Result<Response, 
     let command = event.payload.command;
 
     let sdk_config = aws_config::load_from_env().await;
-    let js_path = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("examples")
-        .join("hello.js");
-    let main_module = deno_core::resolve_path(&js_path.to_string_lossy()).unwrap();
+
+    // write string into file to tmp directory
+    let tmp_dir = std::env::temp_dir();
+    let tmp_file = tmp_dir.join("hello.js");
+    std::fs::write(&tmp_file, "console.log('Hello World!');").unwrap();
+
+    let main_module = deno_core::resolve_path(&tmp_file.to_string_lossy()).unwrap();
     execute_module(main_module, sdk_config, Default::default()).await.unwrap();
 
     // prepare the response
