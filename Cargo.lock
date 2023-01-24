@@ -748,6 +748,7 @@ name = "byt-aws-lambda-runtime"
 version = "0.1.0"
 dependencies = [
  "aws-config",
+ "aws-sdk-s3",
  "byt_runtime",
  "deno_core",
  "lambda_http",

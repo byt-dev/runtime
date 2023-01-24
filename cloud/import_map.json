@@ -2,6 +2,8 @@
   "imports": {
     "aws-cdk-lib": "npm:aws-cdk-lib@2/",
     "aws-cdk-lib/": "npm:/aws-cdk-lib@2/",
-    "constructs": "npm:constructs@10/"
+    "constructs": "npm:constructs@10/",
+    "@aws-sdk/client-s3": "npm:@aws-sdk/client-s3@3.245.0/",
+    "@aws-sdk/client-s3/": "npm:/@aws-sdk/client-s3@3.245.0/"
   }
 }

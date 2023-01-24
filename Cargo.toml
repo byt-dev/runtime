@@ -2,7 +2,7 @@
 resolver = "2"
 members = [
   "runtime",
-  "cloud/lib/rust-runtime"
+  "cloud/constructs/rust-runtime"
 ]
 
 [workspace.package]
@@ -19,3 +19,4 @@ deno = "1.29.4"
 deno_core = "0.167.0"
 deno_runtime = "0.93.0"
 serde = { version = "=1.0.149", features = ["derive"] }
+aws-sdk-s3 = "0.23.0"

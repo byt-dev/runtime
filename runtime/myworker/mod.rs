@@ -2,12 +2,15 @@ use aws_sdk_s3 as s3;
 use deno_core::error::AnyError;
 use deno_core::op;
 use deno_core::serde::Deserialize;
+use deno_core::serde_json;
 use deno_core::serde_json::Map;
 use deno_core::serde_json::Value;
 use deno_core::Extension;
 use deno_core::FsModuleLoader;
 use deno_core::ModuleSpecifier;
 use deno_core::OpState;
+use deno_core::serde_v8;
+use deno_core::v8;
 use deno_runtime::deno_broadcast_channel::InMemoryBroadcastChannel;
 use deno_runtime::deno_web::BlobStore;
 use deno_runtime::ops::io::Stdio;
@@ -106,7 +109,7 @@ pub async fn execute_module(
     main_module: ModuleSpecifier,
     sdk_config: aws_config::SdkConfig,
     stdio: Stdio,
-) -> Result<(), AnyError> {
+) -> Result<deno_core::serde_json::Value, AnyError> {
     let module_loader = Rc::new(FsModuleLoader);
     let create_web_worker_cb = Arc::new(|_| {
         todo!("Web workers are not supported in the example");
@@ -179,10 +182,25 @@ pub async fn execute_module(
         .execute_script("[runjs:runtime.js]", RUNTIME_JAVASCRIPT_CORE)
         .unwrap();
 
+    println!("main worker");
     let module_id = worker.preload_main_module(&main_module).await.unwrap();
     let result = worker.evaluate_module(module_id).await;
+    let module_namespace = worker.js_runtime.get_module_namespace(module_id).unwrap();
+    let scope = &mut worker.js_runtime.handle_scope();
+    let module_namespace = v8::Local::<v8::Object>::new(scope, module_namespace);
 
-    result
+    let default_export_name = v8::String::new(scope, "default").unwrap();
+    let binding = module_namespace.get(scope, default_export_name.into());
+
+    // log the result of the binding
+    let binding = binding.unwrap();
+    // let binding = binding.to_object(scope).unwrap();
+
+    // deserialize the binding as struct
+    let binding: serde_json::Value = serde_v8::from_v8(scope, binding).unwrap();
+    println!("binding: {:#?}", binding);
+
+    Ok(binding)
 }
 
 #[cfg(test)]
@@ -208,6 +226,6 @@ mod test {
         let result = execute_module(main_module, sdk_config, Default::default())
             .await
             .unwrap();
-        assert_eq!(result, ());
+        assert_eq!(result.get("name").unwrap(), "Hello");
     }
 }
