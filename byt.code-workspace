@@ -1,0 +1,20 @@
+{
+  "folders": [
+    {
+      "name": "Rust Runtime",
+      "path": "runtime"
+    },
+    {
+      "name": "Cloud Code",
+      "path": "cloud"
+    },
+    {
+      "name": "Edge Functions",
+      "path": "cloud/edge"
+    },
+    {
+      "name": "CLI",
+      "path": "cli"
+    }
+  ]
+}
