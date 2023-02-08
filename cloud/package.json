@@ -17,7 +17,7 @@
     "@aws-sdk/lib-dynamodb": "^3.266.1",
     "@aws-sdk/smithy-client": "^3.0.0",
     "@aws-sdk/types": "^3.266.1",
-    "@cloudspec/aws-cdk": "file:.yalc/@cloudspec/aws-cdk",
+    "@cloudspec/aws-cdk": "^0.0.12",
     "@mrgrain/cdk-esbuild": "^4.1.1",
     "aws-cdk-lib": "^2.63.2",
     "cdk-iam-floyd": "^0.479.0",
