@@ -1,5 +1,0 @@
-{
-  "tasks": {
-    "cloudspec": "deno test --import-map import_map.json --unstable --no-check --allow-all ./constructs/lambda-runtime.test.ts",
-  }
-}

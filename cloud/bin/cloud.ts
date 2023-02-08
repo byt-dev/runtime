@@ -1,5 +1,5 @@
 import * as cdk from 'aws-cdk-lib';
-import { CloudStack } from '../lib/cloud-stack.ts';
+import { CloudStack } from '../lib/cloud-stack';
 
 const app = new cdk.App();
 new CloudStack(app, 'CloudStack', {

@@ -9,10 +9,6 @@
       "path": "cloud"
     },
     {
-      "name": "Edge Functions",
-      "path": "cloud/edge"
-    },
-    {
       "name": "CLI",
       "path": "cli"
     }

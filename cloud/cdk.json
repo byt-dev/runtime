@@ -1,5 +1,5 @@
 {
-  "app": "deno run --no-check --import-map=import_map.json --allow-all ./bin/cloud.ts",
+  "app": "ts-node --prefer-ts-exts ./bin/cloud.ts",
   "watch": {
     "include": [
       "**"

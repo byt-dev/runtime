@@ -1,8 +1,8 @@
 import * as cdk from "aws-cdk-lib";
 import { CfnOutput } from "aws-cdk-lib";
 import { Construct } from "constructs";
-import { LambdaRuntime } from '../constructs/lambda-runtime.ts'
-import { UploadHandler } from '../constructs/inventory/index.ts'
+import { LambdaRuntime } from '../constructs/lambda-runtime'
+import { UploadHandler } from '../constructs/inventory/index'
 
 export class CloudStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {

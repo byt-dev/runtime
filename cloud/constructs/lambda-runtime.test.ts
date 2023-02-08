@@ -1,39 +1,36 @@
-import { CloudSpec } from "https://github.com/cloudspec-dev/deno-poc/raw/main/src/cloudspec.ts";
-import {
-  assertEquals,
-  assertObjectMatch,
-  describe,
-  it,
-} from "https://github.com/cloudspec-dev/deno-poc/raw/main/src/testing.ts";
-import { Bucket } from "npm:aws-cdk-lib@2/aws-s3";
-import { LambdaRuntime } from "./lambda-runtime.ts";
+import { CloudSpec } from "@cloudspec/aws-cdk";
+import { Bucket } from "aws-cdk-lib/aws-s3";
+import { LambdaRuntime } from "./lambda-runtime";
 import {
   PutObjectCommand,
   S3Client,
-} from "https://esm.sh/@aws-sdk/client-s3@3.245.0";
+} from "@aws-sdk/client-s3";
 import {
   InvokeCommand,
   LambdaClient,
-} from "https://esm.sh/@aws-sdk/client-lambda@3.245.0";
-import { fromSSO } from "npm:@aws-sdk/credential-providers";
+} from "@aws-sdk/client-lambda";
 
-const credentials = fromSSO();
-const s3 = new S3Client({ credentials, region: "eu-central-1" });
-const lambda = new LambdaClient({ credentials, region: "eu-central-1" });
-const cloudspec = new CloudSpec("lambda-runtime", import.meta.url);
-
-const testApp = await cloudspec.testApp((stack) => {
-  const bucket = new Bucket(stack, "MyBucket");
-  const lambda = new LambdaRuntime(stack, "LambdaRuntime", { bucket });
-  stack.outputs({
+const deploy = async () => {
+  const cloudspec = new CloudSpec("lambda-runtime", __dirname);
+  const bucket = new Bucket(cloudspec.stack, "MyBucket");
+  const lambdaRuntime = new LambdaRuntime(cloudspec.stack, "LambdaRuntime", { bucket });
+  cloudspec.stack.outputs({
     BucketName: bucket.bucketName,
-    LambdaArn: lambda.handler.functionArn,
+    LambdaArn: lambdaRuntime.handler.functionArn,
   });
-});
+  return await cloudspec.deploy();
+};
 
-const outputs = await cloudspec.deploy(testApp);
+const s3 = new S3Client({});
+const lambda = new LambdaClient({});
 
 describe("LambdaResult", () => {
+  let outputs: any;
+
+  beforeAll(async () => {
+    outputs = await deploy();
+  }, 600_000);
+
   it("does not have an error", async () => {
     // put a file in the bucket
     await s3.send(
@@ -54,8 +51,8 @@ describe("LambdaResult", () => {
       }),
     );
 
-    assertEquals(result.StatusCode, 200);
-    assertEquals(result.FunctionError, undefined);
+    expect(result.StatusCode).toEqual(200);
+    expect(result.FunctionError).toEqual(undefined);
   });
 
   it("has an error", async () => {
@@ -79,8 +76,8 @@ describe("LambdaResult", () => {
       }),
     );
 
-    assertEquals(result.StatusCode, 200);
-    assertEquals(result.FunctionError, "Unhandled");
+    expect(result.StatusCode).toEqual(200);
+    expect(result.FunctionError).toEqual("Unhandled");
   });
 
   it("returns a result", async () => {
@@ -103,9 +100,9 @@ describe("LambdaResult", () => {
       }),
     );
 
-    assertEquals(result.StatusCode, 200);
-    assertEquals(result.FunctionError, undefined);
-    assertObjectMatch(JSON.parse(new TextDecoder().decode(result.Payload!)), {
+    expect(result.StatusCode).toEqual(200);
+    expect(result.FunctionError).toEqual(undefined);
+    expect(JSON.parse(new TextDecoder().decode(result.Payload!))).toMatchObject({
       payload: { hello: "world" },
     });
   });
