@@ -1,0 +1,111 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`upload.origin-request denies GET request 1`] = `
+{
+  "body": "Forbidden",
+  "headers": {
+    "content-type": [
+      {
+        "key": "Content-Type",
+        "value": "text/plain",
+      },
+    ],
+  },
+  "status": "403",
+  "statusDescription": "Forbidden",
+}
+`;
+
+exports[`upload.origin-request denies POST request 1`] = `
+{
+  "body": "Forbidden",
+  "headers": {
+    "content-type": [
+      {
+        "key": "Content-Type",
+        "value": "text/plain",
+      },
+    ],
+  },
+  "status": "403",
+  "statusDescription": "Forbidden",
+}
+`;
+
+exports[`upload.origin-request denies request without "authorization" header 1`] = `
+{
+  "body": "Forbidden",
+  "headers": {
+    "content-type": [
+      {
+        "key": "Content-Type",
+        "value": "text/plain",
+      },
+    ],
+  },
+  "status": "403",
+  "statusDescription": "Forbidden",
+}
+`;
+
+exports[`upload.origin-request works for PUT request 1`] = `
+{
+  "clientIp": "79.140.182.36",
+  "headers": {
+    "accept-encoding": [
+      {
+        "key": "accept-encoding",
+        "value": "br, gzip, deflate",
+      },
+    ],
+    "content-length": [
+      {
+        "key": "Content-Length",
+        "value": "62",
+      },
+    ],
+    "host": [
+      {
+        "key": "Host",
+        "value": "cloudspec-upload-test-sebastian-mybucketf68f3ff0-bnbp1iesevds.s3.us-east-1.amazonaws.com",
+      },
+    ],
+    "user-agent": [
+      {
+        "key": "User-Agent",
+        "value": "undici",
+      },
+    ],
+    "via": [
+      {
+        "key": "Via",
+        "value": "1.1 3e3281afcc193fd3ff8fb81e9d5a5830.cloudfront.net (CloudFront)",
+      },
+    ],
+    "x-amz-acl": [
+      {
+        "key": "x-amz-acl",
+        "value": "bucket-owner-full-control",
+      },
+    ],
+    "x-forwarded-for": [
+      {
+        "key": "X-Forwarded-For",
+        "value": "79.140.182.36",
+      },
+    ],
+  },
+  "method": "PUT",
+  "origin": {
+    "s3": {
+      "authMethod": "origin-access-identity",
+      "customHeaders": {},
+      "domainName": "cloudspec-upload-test-sebastian-mybucketf68f3ff0-bnbp1iesevds.s3.us-east-1.amazonaws.com",
+      "path": "",
+      "region": "us-east-1",
+    },
+  },
+  "querystring": "",
+  "uri": "/test-foobar/01F1ZQZJ1XQZJ0XQZJ1XQZJ1XQ.gz",
+}
+`;

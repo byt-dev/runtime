@@ -35,12 +35,20 @@ export class Identity extends Construct {
 
     this.client = this.userPool.addClient('app-client', {
       authFlows: {
-        userPassword: true,
+        userPassword: false,
         userSrp: true,
-        custom: true,
+        custom: false,
       },
       generateSecret: true,
     });
+
+    // this.identityPool = new IdentityPool(this, 'myIdentityPool', {
+    //   identityPoolName: 'myIdentityPool',
+    //   allowUnauthenticatedIdentities: false,
+    //   authenticationProviders: {
+    //     userPools: [new UserPoolAuthenticationProvider({ userPool: this.userPool })],
+    //   },
+    // });
 
     // we need a globally unique domain name for the user pool. Can be omitted if you only have one user pool like in production
     const stackId = Fn.select(2, Fn.split('/', Fn.ref('AWS::StackId')))
@@ -49,5 +57,56 @@ export class Identity extends Construct {
         domainPrefix: `byt-${stackId}`,
       }
     })
+
+    // this.identityPool.authenticatedRole.addToPrincipalPolicy(
+    //   new iam.S3()
+    //     .allow()
+    //     .toListBucket()
+    //     .on(bucket.bucketArn)
+    //     .ifPrefix("private/$${cognito-identity.amazonaws.com:sub}"),
+    // )
+
+    // this.identityPool.authenticatedRole.addToPrincipalPolicy(
+    //   new iam.S3()
+    //     .allow()
+    //     .toPutObject()
+    //     .on(
+    //       `${bucket.bucketArn}/private/\$\${cognito-identity.amazonaws.com:sub}`,
+    //       `${bucket.bucketArn}/private/\$\${cognito-identity.amazonaws.com:sub}/*`
+    //     ),
+    // )
+        //   new iam.Dynamodb()
+        //     .allow()
+        //     .toPutItem()
+        //     .toUpdateItem()
+        //     .on(secretStore.arn)
+        //     .ifLeadingKeys(
+        //       "$${cognito-identity.amazonaws.com:sub}",
+        //       new iam.Operator().forAllValues().stringEquals()
+        //     ),
+        //   new iam.Dynamodb()
+        //     .allow()
+        //     .toQuery()
+        //     .on(secretStore.arn)
+        //     .ifLeadingKeys(
+        //       "$${cognito-identity.amazonaws.com:sub}",
+        //       new iam.Operator().forAllValues().stringEquals()
+        //     ),
+        //   new iam.Dynamodb()
+        //     .allow()
+        //     .toQuery()
+        //     .on(logsTable.arn)
+        //     .ifLeadingKeys(
+        //       "$${cognito-identity.amazonaws.com:sub}",
+        //       new iam.Operator().forAllValues().stringEquals()
+        //     ),
+        //   new iam.Appsync()
+        //     .allow()
+        //     .toGraphQL()
+        //     .on(`${appsync.arn}/*`)
+        // ],
+      // }
+    // );
+
   }
 }

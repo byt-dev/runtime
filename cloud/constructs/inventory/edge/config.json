@@ -1,0 +1,8 @@
+{
+  "cognito": {
+    "userPoolId": "us-east-1_XXXXXXXXX",
+    "clientId": "XXXXXXXXXXXXXXXXXXXXXXXXXX",
+    "region": "us-east-1",
+    "domain": "https://myapp.auth.us-east-1.amazoncognito.com"
+  }
+}

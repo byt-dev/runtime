@@ -3,8 +3,15 @@ import { Runtime } from "aws-cdk-lib/aws-lambda";
 import { Construct } from 'constructs'
 import { TypeScriptCode } from '@mrgrain/cdk-esbuild'
 import * as path from 'path'
+import { LambdaConfig } from '../lambda-config'
 export interface UploadApiProps {
   readonly bucket: cdk.aws_s3.IBucket
+  readonly cognito: {
+    readonly userPoolId: string
+    readonly clientId: string
+    readonly domain: string
+    readonly region: string
+  }
 }
 
 export class UploadApi extends Construct {
@@ -18,7 +25,7 @@ export class UploadApi extends Construct {
       buildOptions: {
         format: "cjs",
         outfile: "index.js",
-    },
+      },
     })
 
     const fn = new cdk.aws_cloudfront.experimental.EdgeFunction(this, "handler", {
@@ -45,6 +52,12 @@ export class UploadApi extends Construct {
       memorySize: 1024,
     });
 
+    const lambda = new LambdaConfig(this, 'LambdaConfig', {
+      function: fn,
+      config: {
+        cognito: props.cognito
+      },
+    })
 
     const myHostedZone = cdk.aws_route53.HostedZone.fromHostedZoneAttributes(this, 'HostedZone', {
       hostedZoneId: 'Z063149824WBMACIEVUV5',
@@ -76,7 +89,7 @@ export class UploadApi extends Construct {
         edgeLambdas: [
           {
             includeBody: false,
-            functionVersion: fn.currentVersion,
+            functionVersion: lambda.version,
             eventType: cdk.aws_cloudfront.LambdaEdgeEventType.ORIGIN_REQUEST,
           },
           {

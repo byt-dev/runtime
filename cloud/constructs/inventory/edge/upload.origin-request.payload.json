@@ -1,0 +1,229 @@
+{
+  "event": {
+      "Records": [
+        {
+          "cf": {
+            "config": {
+              "distributionDomainName": "dtud5p8n9d6d9.cloudfront.net",
+              "distributionId": "E3C7I5UPU48AO9",
+              "eventType": "origin-request",
+              "requestId": "0mNI-vYx-x_OP49jyIGEPs8tEl61QqPGEc1xN1UMVqUGSpRU1JOe4Q=="
+            },
+            "request": {
+              "clientIp": "79.140.182.36",
+              "headers": {
+                "authorization": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer 1234567890"
+                  }
+                ],
+                "host": [
+                  {
+                    "key": "Host",
+                    "value": "dtud5p8n9d6d9.cloudfront.net"
+                  }
+                ],
+                "cloudfront-is-mobile-viewer": [
+                  {
+                    "key": "CloudFront-Is-Mobile-Viewer",
+                    "value": "false"
+                  }
+                ],
+                "cloudfront-is-tablet-viewer": [
+                  {
+                    "key": "CloudFront-Is-Tablet-Viewer",
+                    "value": "false"
+                  }
+                ],
+                "cloudfront-is-smarttv-viewer": [
+                  {
+                    "key": "CloudFront-Is-SmartTV-Viewer",
+                    "value": "false"
+                  }
+                ],
+                "cloudfront-is-desktop-viewer": [
+                  {
+                    "key": "CloudFront-Is-Desktop-Viewer",
+                    "value": "true"
+                  }
+                ],
+                "cloudfront-is-ios-viewer": [
+                  {
+                    "key": "CloudFront-Is-IOS-Viewer",
+                    "value": "false"
+                  }
+                ],
+                "cloudfront-is-android-viewer": [
+                  {
+                    "key": "CloudFront-Is-Android-Viewer",
+                    "value": "false"
+                  }
+                ],
+                "accept-language": [
+                  {
+                    "key": "Accept-Language",
+                    "value": "*"
+                  }
+                ],
+                "accept": [
+                  {
+                    "key": "Accept",
+                    "value": "*/*"
+                  }
+                ],
+                "cloudfront-forwarded-proto": [
+                  {
+                    "key": "CloudFront-Forwarded-Proto",
+                    "value": "https"
+                  }
+                ],
+                "x-forwarded-for": [
+                  {
+                    "key": "X-Forwarded-For",
+                    "value": "79.140.182.36"
+                  }
+                ],
+                "user-agent": [
+                  {
+                    "key": "User-Agent",
+                    "value": "undici"
+                  }
+                ],
+                "via": [
+                  {
+                    "key": "Via",
+                    "value": "1.1 3e3281afcc193fd3ff8fb81e9d5a5830.cloudfront.net (CloudFront)"
+                  }
+                ],
+                "content-length": [
+                  {
+                    "key": "Content-Length",
+                    "value": "62"
+                  }
+                ],
+                "content-type": [
+                  {
+                    "key": "content-type",
+                    "value": "application/gzip"
+                  }
+                ],
+                "sec-fetch-mode": [
+                  {
+                    "key": "sec-fetch-mode",
+                    "value": "cors"
+                  }
+                ],
+                "accept-encoding": [
+                  {
+                    "key": "accept-encoding",
+                    "value": "br, gzip, deflate"
+                  }
+                ],
+                "cloudfront-viewer-http-version": [
+                  {
+                    "key": "CloudFront-Viewer-HTTP-Version",
+                    "value": "1.1"
+                  }
+                ],
+                "cloudfront-viewer-country": [
+                  {
+                    "key": "CloudFront-Viewer-Country",
+                    "value": "DE"
+                  }
+                ],
+                "cloudfront-viewer-country-name": [
+                  {
+                    "key": "CloudFront-Viewer-Country-Name",
+                    "value": "Germany"
+                  }
+                ],
+                "cloudfront-viewer-country-region": [
+                  {
+                    "key": "CloudFront-Viewer-Country-Region",
+                    "value": "HE"
+                  }
+                ],
+                "cloudfront-viewer-country-region-name": [
+                  {
+                    "key": "CloudFront-Viewer-Country-Region-Name",
+                    "value": "Hesse"
+                  }
+                ],
+                "cloudfront-viewer-city": [
+                  {
+                    "key": "CloudFront-Viewer-City",
+                    "value": "Mittenaar"
+                  }
+                ],
+                "cloudfront-viewer-postal-code": [
+                  {
+                    "key": "CloudFront-Viewer-Postal-Code",
+                    "value": "35756"
+                  }
+                ],
+                "cloudfront-viewer-time-zone": [
+                  {
+                    "key": "CloudFront-Viewer-Time-Zone",
+                    "value": "Europe/Berlin"
+                  }
+                ],
+                "cloudfront-viewer-latitude": [
+                  {
+                    "key": "CloudFront-Viewer-Latitude",
+                    "value": "50.70340"
+                  }
+                ],
+                "cloudfront-viewer-longitude": [
+                  {
+                    "key": "CloudFront-Viewer-Longitude",
+                    "value": "8.38430"
+                  }
+                ],
+                "cloudfront-viewer-address": [
+                  {
+                    "key": "CloudFront-Viewer-Address",
+                    "value": "79.140.182.36:59205"
+                  }
+                ],
+                "cloudfront-viewer-tls": [
+                  {
+                    "key": "CloudFront-Viewer-TLS",
+                    "value": "TLSv1.3:TLS_AES_128_GCM_SHA256:fullHandshake"
+                  }
+                ],
+                "cloudfront-viewer-asn": [
+                  {
+                    "key": "CloudFront-Viewer-ASN",
+                    "value": "12312"
+                  }
+                ]
+              },
+              "method": "PUT",
+              "origin": {
+                "s3": {
+                  "authMethod": "origin-access-identity",
+                  "customHeaders": {},
+                  "domainName": "cloudspec-upload-test-sebastian-mybucketf68f3ff0-bnbp1iesevds.s3.us-east-1.amazonaws.com",
+                  "path": "",
+                  "region": "us-east-1"
+                }
+              },
+              "querystring": "",
+              "uri": "/upload.gz"
+            }
+          }
+        }
+      ]
+    },
+  "context": {
+      "callbackWaitsForEmptyEventLoop": true,
+      "functionVersion": "7",
+      "functionName": "us-east-1.CloudSpec-upload-test-seb-UploadTesthandlerFnE6205-PWV",
+      "memoryLimitInMB": "1024",
+      "logGroupName": "/aws/lambda/us-east-1.CloudSpec-upload-test-seb-UploadTesthandlerFnE6205-PWVgt2IbX1bK",
+      "logStreamName": "2023/02/08/[7]32e877db2a4f4a60b8373222d6fae1a6",
+      "invokedFunctionArn": "arn:aws:lambda:eu-central-1:505867739087:function:us-east-1.CloudSpec-upload-test-seb-UploadTesthandlerFnE6205-PWVgt2IbX1bK:7",
+      "awsRequestId": "6f453296-4b50-48c4-82f9-6d0e91544bb2"
+    }
+}
