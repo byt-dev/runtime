@@ -71,6 +71,12 @@ describe("UploadAPI", () => {
 
     const password = `aB1?${ulid()}`;
 
+    console.log({
+      user,
+      password,
+      outputs,
+    })
+
     await cognitoClient.send(new AdminSetUserPasswordCommand({
       UserPoolId: outputs.UserPoolId,
       Username: `testuser-${userId}`,

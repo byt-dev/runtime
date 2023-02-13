@@ -2,7 +2,8 @@
 resolver = "2"
 members = [
   "runtime",
-  "cloud/constructs/rust-runtime"
+  "cloud/constructs/rust-runtime",
+  "rust-cli"
 ]
 
 [workspace.package]
@@ -14,9 +15,9 @@ repository = "https://github.com/byt-dev/runtime"
 [workspace.dependencies]
 byt_runtime = { version = "0.1.0", path = "./runtime" }
 tokio = { version = "1", features = ["full"] }
-aws-config = { version = "0.53.0" }
-deno = "1.29.4"
-deno_core = "0.167.0"
-deno_runtime = "0.93.0"
+aws-config = { version = "0.54.1" }
+deno = "1.30.2"
+deno_core = "0.171.0"
+deno_runtime = "0.97.0"
 serde = { version = "=1.0.149", features = ["derive"] }
-aws-sdk-s3 = "0.23.0"
+aws-sdk-s3 = "0.24.0"
