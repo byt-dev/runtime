@@ -810,6 +810,7 @@ dependencies = [
  "aws-sdk-s3",
  "byt_runtime",
  "deno_core 0.171.0",
+ "flate2",
  "lambda_http",
  "lambda_runtime",
  "serde",

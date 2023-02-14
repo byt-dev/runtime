@@ -39,7 +39,7 @@ export class Identity extends Construct {
         userSrp: true,
         custom: false,
       },
-      generateSecret: true,
+      generateSecret: false,
     });
 
     // this.identityPool = new IdentityPool(this, 'myIdentityPool', {

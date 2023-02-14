@@ -8,3 +8,4 @@ pub mod config;
 pub mod login;
 pub mod deploy;
 pub mod signup;
+pub mod confirm;

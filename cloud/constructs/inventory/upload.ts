@@ -59,23 +59,23 @@ export class UploadApi extends Construct {
       },
     })
 
-    const myHostedZone = cdk.aws_route53.HostedZone.fromHostedZoneAttributes(this, 'HostedZone', {
-      hostedZoneId: 'Z063149824WBMACIEVUV5',
-      zoneName: 'run.byt.dev',
-    });
+    // const myHostedZone = cdk.aws_route53.HostedZone.fromHostedZoneAttributes(this, 'HostedZone', {
+    //   hostedZoneId: 'Z063149824WBMACIEVUV5',
+    //   zoneName: 'run.byt.dev',
+    // });
 
-    // Create "upload.byt.dev" cname
-    const domain = new cdk.aws_route53.CnameRecord(this, 'domain', {
-      zone: myHostedZone,
-      recordName: 'upload',
-      domainName: 'run.byt.dev',
-    })
+    // // Create "upload.byt.dev" cname
+    // const domain = new cdk.aws_route53.CnameRecord(this, 'domain', {
+    //   zone: myHostedZone,
+    //   recordName: 'upload',
+    //   domainName: 'run.byt.dev',
+    // })
 
-    const cert = new cdk.aws_certificatemanager.Certificate(this, 'Certificate', {
-      domainName: domain.domainName,
-      certificateName: 'Byt Upload Service', // Optionally provide an certificate name
-      validation: cdk.aws_certificatemanager.CertificateValidation.fromDns(myHostedZone),
-    });
+    // const cert = new cdk.aws_certificatemanager.Certificate(this, 'Certificate', {
+    //   domainName: domain.domainName,
+    //   certificateName: 'Byt Upload Service', // Optionally provide an certificate name
+    //   validation: cdk.aws_certificatemanager.CertificateValidation.fromDns(myHostedZone),
+    // });
 
     const identity = new cdk.aws_cloudfront.OriginAccessIdentity(this, 'OAI')
     bucket.grantReadWrite(identity)
@@ -99,8 +99,8 @@ export class UploadApi extends Construct {
           }
         ]
       },
-      certificate: cert,
-      domainNames: [domain.domainName],
+      // certificate: cert,
+      // domainNames: [domain.domainName],
       priceClass: cdk.aws_cloudfront.PriceClass.PRICE_CLASS_100,
     });
 

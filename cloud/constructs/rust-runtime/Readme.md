@@ -34,3 +34,15 @@ brew install filosottile/musl-cross/musl-cross
 linker = "x86_64-linux-musl-gcc"
 ```
 
+## Build
+
+```
+  docker run --rm \
+    -v ${PWD}:/code \
+    -v ${PWD}/../deno:/deno \
+    -v ${HOME}/.cargo/registry:/cargo/registry \
+    -v ${HOME}/.cargo/git:/cargo/git \
+    -w /code/cloud/constructs/rust-runtime \
+    -e RUST_BACKTRACE=1 \
+    rustserverless/lambda-rust
+```

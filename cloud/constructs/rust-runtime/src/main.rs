@@ -1,27 +1,9 @@
 use aws_sdk_s3 as s3;
 use deno_core::serde_json;
+use lambda_http::{aws_lambda_events::apigw::{ApiGatewayProxyRequest, ApiGatewayProxyResponse}, Response, Body, IntoResponse, http::HeaderMap,  };
 use lambda_runtime::{service_fn, Error, LambdaEvent};
-use serde::{Deserialize, Serialize};
-
-/// This is also a made-up example. Requests come into the runtime as unicode
-/// strings in json format, which can map to any structure that implements `serde::Deserialize`
-/// The runtime pays no attention to the contents of the request payload.
-#[derive(Deserialize)]
-struct Request {
-    key: String,
-}
-
-/// This is a made-up example of what a response structure may look like.
-/// There is no restriction on what it can be. The runtime requires responses
-/// to be serialized into json. The runtime pays no attention
-/// to the contents of the response payload.
-#[derive(Serialize)]
-struct Response {
-    req_id: String,
-    msg: String,
-    payload: serde_json::Value,
-}
-
+use serde::{de, ser};
+use std::io::Read;
 use byt_runtime::myworker::execute_module;
 
 #[tokio::main]
@@ -37,46 +19,67 @@ async fn main() -> Result<(), Error> {
     Ok(())
 }
 
-pub(crate) async fn my_handler(event: LambdaEvent<Request>) -> Result<Response, Error> {
-    // extract some useful info from the request
-    let key = event.payload.key;
-    let request_id = event.context.request_id.clone();
+pub(crate) async fn my_handler(event: LambdaEvent<ApiGatewayProxyRequest>) -> Result<ApiGatewayProxyResponse, lambda_runtime::Error>{
+    // print the event
+    tracing::info!("event: {:?}", event);
 
+    let path = event.payload.path.unwrap();
+    // remove leading slash and append .gz
+    let path = path.trim_start_matches('/').to_string();
+    let path = format!("{}.gz", path);
+
+    // path basename without extension
+    let path_obj = std::path::Path::new(&path);
+    let filename = path_obj.file_stem().unwrap().to_str().unwrap().to_string();
+
+
+    let request_id = event.context.request_id.clone();
     let sdk_config = aws_config::load_from_env().await;
+
+    tracing::info!("path: {:?}", path);
 
     // get env BUCKET_NAME
     let bucket_name = std::env::var("BUCKET_NAME").unwrap();
-
     let client = s3::Client::new(&sdk_config);
     let s3_object = client
         .get_object()
         .bucket(bucket_name)
-        .key(&key)
+        .key(&path)
         .send()
         .await
         .unwrap();
-    let body = s3_object.body.collect().await.unwrap();
+    let body = s3_object.body.collect().await.unwrap().into_bytes();
+    let mut string_body = String::new();
+    flate2::read::GzDecoder::new(&body[..]).read_to_string(&mut string_body).unwrap();
 
     // write string into file to tmp directory
     let tmp_dir = std::env::temp_dir();
     let tmp_dir = tmp_dir.join(format!("byt/{}", request_id));
     // create directory if not exists
     std::fs::create_dir_all(&tmp_dir).unwrap();
-    let tmp_file = tmp_dir.join("index.js");
-    std::fs::write(&tmp_file, body.into_bytes()).unwrap();
+    let tmp_file = tmp_dir.join(filename);
+    std::fs::write(&tmp_file, string_body).unwrap();
 
     let main_module = deno_core::resolve_path(&tmp_file.to_string_lossy()).unwrap();
     let result = execute_module(main_module, sdk_config, Default::default())
         .await
         .unwrap();
 
-    // prepare the response
-    let resp = Response {
-        req_id: event.context.request_id,
-        msg: format!("Command {:?} executed.", key),
-        payload: result,
+
+    let body = serde_json::to_string(&result).unwrap();
+    ;
+    let response = ApiGatewayProxyResponse {
+        status_code: 200,
+        // json headers
+        headers: {
+            let mut h = HeaderMap::new();
+            h.insert("Content-Type", "application/json".parse().unwrap());
+            h
+        },
+        multi_value_headers: Default::default(),
+        body: Some(body.into()),
+        is_base64_encoded: None,
     };
 
-    // return `Response` (it will be serialized to JSON automatically by the runtime)
-    Ok(resp)
+    Ok(response)
 }

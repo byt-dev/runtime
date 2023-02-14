@@ -1,5 +1,5 @@
 ((globalThis) => {
-  const { core } = Deno;
+  const { core } = Deno[Deno.internal];
   const { ops } = core;
 
   globalThis.rust = {

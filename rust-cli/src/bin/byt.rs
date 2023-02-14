@@ -2,6 +2,7 @@ use clap::{arg, Command};
 use byt_cli::login::login;
 use byt_cli::signup::signup;
 use byt_cli::deploy::deploy;
+use byt_cli::confirm::confirm;
 
 fn cli() -> Command {
     Command::new("byt")
@@ -20,6 +21,13 @@ fn cli() -> Command {
                 .about("Signup to byt.dev")
                 .arg(arg!(<USERNAME> "The username"))
                 .arg(arg!(<EMAIL> "The email"))
+                .arg_required_else_help(true),
+        )
+        .subcommand(
+            Command::new("confirm")
+                .about("Confirm signup to byt.dev")
+                .arg(arg!(<USERNAME> "The username used for signing up"))
+                .arg(arg!(<CODE> "The confirmation code received via email"))
                 .arg_required_else_help(true),
         )
         .subcommand(
@@ -50,6 +58,15 @@ async fn main() -> Result<(), anyhow::Error> {
                 email
             );
             signup(username, email).await?;
+        }
+        Some(("confirm", sub_matches)) => {
+            let username = sub_matches.get_one::<String>("USERNAME").expect("required");
+            let code = sub_matches.get_one::<String>("CODE").expect("required");
+            println!(
+                "Confirming Sign up {}",
+                username
+            );
+            confirm(username, code).await?;
         }
         Some(("deploy", sub_matches)) => {
             println!(
