@@ -75,12 +75,12 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          path: 'byt'
+          path: byt
       - uses: actions/checkout@v3
         with:
           repository: "skorfmann/deno"
           ref: "rust-cli"
-          path: 'deno'
+          path: deno
       - name: Install Rust
         run: cd byt && rustup update stable && rustup default stable
       - name: Install cargo-dist
