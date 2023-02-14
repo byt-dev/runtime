@@ -57,6 +57,7 @@ jobs:
   upload-artifacts:
     needs: create-release
     strategy:
+      fail-fast: false
       matrix:
         # For these target platforms
         include:
@@ -81,6 +82,8 @@ jobs:
           repository: "skorfmann/deno"
           ref: "rust-cli"
           path: deno
+      - name: path
+        run: ls -al
       - name: Install Rust
         run: cd byt && rustup update stable && rustup default stable
       - name: Install cargo-dist
