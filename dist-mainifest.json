@@ -1,0 +1,66 @@
+{
+  "dist_version": "0.0.2",
+  "releases": [
+    {
+      "app_name": "byt",
+      "app_version": "0.1.0",
+      "artifacts": [
+        {
+          "name": "byt-v0.1.0-x86_64-apple-darwin.tar.xz",
+          "kind": "executable-zip",
+          "target_triples": [
+            "x86_64-apple-darwin"
+          ],
+          "path": "/Users/sebastian/projects/byt/runtime/target/distrib/byt-v0.1.0-x86_64-apple-darwin.tar.xz",
+          "assets": [
+            {
+              "name": "LICENSE",
+              "path": "LICENSE",
+              "kind": "license"
+            },
+            {
+              "name": "byt",
+              "path": "byt",
+              "kind": "executable"
+            }
+          ]
+        }
+      ],
+      "changelog_title": "v0.1.0",
+      "changelog_body": ""
+    },
+    {
+      "app_name": "bootstrap",
+      "app_version": "0.1.0",
+      "artifacts": [
+        {
+          "name": "bootstrap-v0.1.0-x86_64-apple-darwin.tar.xz",
+          "kind": "executable-zip",
+          "target_triples": [
+            "x86_64-apple-darwin"
+          ],
+          "path": "/Users/sebastian/projects/byt/runtime/target/distrib/bootstrap-v0.1.0-x86_64-apple-darwin.tar.xz",
+          "assets": [
+            {
+              "name": "LICENSE",
+              "path": "LICENSE",
+              "kind": "license"
+            },
+            {
+              "name": "README.md",
+              "path": "README.md",
+              "kind": "readme"
+            },
+            {
+              "name": "bootstrap",
+              "path": "bootstrap",
+              "kind": "executable"
+            }
+          ]
+        }
+      ],
+      "changelog_title": "v0.1.0",
+      "changelog_body": ""
+    }
+  ]
+}

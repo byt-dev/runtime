@@ -74,8 +74,15 @@ jobs:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v3
+        with:
+          path: 'byt'
+      - uses: actions/checkout@v3
+        with:
+          repository: "skorfmann/deno"
+          ref: "rust-cli"
+          path: 'deno'
       - name: Install Rust
-        run: rustup update stable && rustup default stable
+        run: cd byt && rustup update stable && rustup default stable
       - name: Install cargo-dist
         run: ${{ matrix.install-dist }}
       - name: Run cargo-dist
@@ -85,6 +92,7 @@ jobs:
         # do agree on 'cat' and '$()' so we use that to marshal values between commmands.
         run: |
           # Actually do builds and make zips and whatnot
+          cd byt
           cargo dist --target=${{ matrix.target }} --output-format=json > dist-manifest.json
           echo "dist ran successfully"
           cat dist-manifest.json
@@ -104,12 +112,13 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Install Rust
-        run: rustup update stable && rustup default stable
+        run: cd byt && rustup update stable && rustup default stable
       - name: Install cargo-dist
-        run: curl --proto '=https' --tlsv1.2 -L -sSf https://github.com/axodotdev/cargo-dist/releases/download/v0.0.2/installer.sh | sh
+        run: cd byt && curl --proto '=https' --tlsv1.2 -L -sSf https://github.com/axodotdev/cargo-dist/releases/download/v0.0.2/installer.sh | sh
       - name: Run cargo-dist manifest
         run: |
           # Generate a manifest describing everything
+          cd byt &&
           cargo dist manifest --no-local-paths --output-format=json $ALL_CARGO_DIST_TARGET_ARGS $ALL_CARGO_DIST_INSTALLER_ARGS > dist-manifest.json
           echo "dist manifest ran successfully"
           cat dist-manifest.json
