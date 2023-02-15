@@ -17,6 +17,10 @@ path = "lib.rs"
 name = "hello_runtime"
 path = "examples/hello.rs"
 
+[[example]]
+name = "request_handler"
+path = "examples/request/handler.rs"
+
 [dependencies]
 deno.workspace = true
 deno_core.workspace = true

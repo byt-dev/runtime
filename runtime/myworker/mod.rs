@@ -228,4 +228,20 @@ mod test {
             .unwrap();
         assert_eq!(result.get("name").unwrap(), "Hello");
     }
+
+    #[tokio::test]
+    async fn test_runtime_request_handler() {
+        let sdk_config = aws_config::load_from_env().await;
+        let js_path = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("examples")
+            .join("request")
+            .join("wrapper.js");
+        let main_module = deno_core::resolve_path(&js_path.to_string_lossy()).unwrap();
+
+        let result = execute_module(main_module, sdk_config, Default::default())
+            .await
+            .unwrap();
+        print!("{:#?}", result);
+        assert_eq!(result.get("statusCode").unwrap(), 200);
+    }
 }
