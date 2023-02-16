@@ -66,7 +66,7 @@ jobs:
         if: |-
           matrix.profile == 'release' &&
           github.repository == 'byt-dev/runtime' &&
-          github.ref == 'refs/heads/main'))
+          github.ref == 'refs/heads/main'
         shell: bash
         run: echo "BYT_CANARY=true" >> $GITHUB_ENV
       - if: 'matrix.use_sysroot'
