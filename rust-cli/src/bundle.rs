@@ -31,7 +31,12 @@ mod test {
 
     #[tokio::test]
     async fn test_bundle() {
-        let file_path = Path::new("examples/hello.js").to_string_lossy().to_string();
+        // examples/hello.js as path which works on linux and windows
+        let file_path = Path::new("examples")
+            .join("hello.js")
+            .to_string_lossy()
+            .to_string();
+
         let result = bundler(file_path).await.unwrap();
         assert_eq!(result, ());
     }
