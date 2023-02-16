@@ -82,7 +82,7 @@ jobs:
           sudo dd of=/etc/apt/trusted.gpg.d/llvm-snapshot.gpg
           sudo apt-get update
           # this was unreliable sometimes, so try again if it fails
-          sudo apt-get install --no-install-recommends debootstrap clang-15 lld-15 pkg-config libssl-dev || echo 'Failed. Trying again.' && sudo apt-get clean && sudo apt-get update && sudo apt-get install --no-install-recommends debootstrap clang-15 lld-15 pkg-config libssl-dev
+          sudo apt-get install debootstrap clang-15 lld-15 pkg-config libssl-dev || echo 'Failed. Trying again.' && sudo apt-get clean && sudo apt-get update && sudo apt-get install debootstrap clang-15 lld-15 pkg-config libssl-dev
 
           # Create ubuntu-16.04 sysroot environment, which is used to avoid
           # depending on a very recent version of glibc.
