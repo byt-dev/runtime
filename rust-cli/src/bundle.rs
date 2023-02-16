@@ -25,11 +25,14 @@ pub async fn bundler(
 
 #[cfg(test)]
 mod test {
+    use std::path::Path;
+
     use super::*;
 
     #[tokio::test]
     async fn test_bundle() {
-        let result = bundler("examples/hello.js".to_string()).await.unwrap();
+        let file_path = Path::new("examples/hello.js").to_string_lossy().to_string();
+        let result = bundler(file_path).await.unwrap();
         assert_eq!(result, ());
     }
 }
