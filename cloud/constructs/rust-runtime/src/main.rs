@@ -83,3 +83,68 @@ pub(crate) async fn my_handler(event: LambdaEvent<ApiGatewayProxyRequest>) -> Re
 
     Ok(response)
 }
+
+#[cfg(test)]
+mod test {
+    use lambda_runtime::Context;
+    use super::*;
+
+    // this gzips the file and uploads it to s3 as file_name.gz
+    async fn upload_to_s3(file_name: &str) {
+        let js_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("fixtures")
+            .join(file_name);
+
+        let sdk_config = aws_config::load_from_env().await;
+        let client = s3::Client::new(&sdk_config);
+        let bucket_name = std::env::var("BUCKET_NAME").unwrap();
+        let key = "hello.js.gz";
+        let mut file = std::fs::File::open(&js_path).unwrap();
+        let mut gz = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
+        std::io::copy(&mut file, &mut gz).unwrap();
+        let gz = gz.finish().unwrap();
+        let gz = aws_sdk_s3::types::ByteStream::from(gz);
+
+        let put_object = client
+            .put_object()
+            .bucket(bucket_name)
+            .key(key)
+            .body(gz);
+        put_object.send().await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_run_simple_file() -> () {
+        std::env::set_var("BUCKET_NAME", "cloudspec-lambda-runtime-undefin-mybucketf68f3ff0-1ad53swbdopz7");
+
+        upload_to_s3("hello.js").await;
+
+        let lambda_event = LambdaEvent {
+            context: Context::default(),
+            payload: ApiGatewayProxyRequest {
+                path: Some("/hello.js".to_string()),
+                ..Default::default()
+            },
+        };
+
+        let r = my_handler(lambda_event).await.unwrap();
+        assert_eq!(r.status_code, 200);
+    }
+
+    async fn test_pass_request_response() -> () {
+        std::env::set_var("BUCKET_NAME", "cloudspec-lambda-runtime-undefin-mybucketf68f3ff0-1ad53swbdopz7");
+
+        upload_to_s3("request-response.js").await;
+
+        let lambda_event = LambdaEvent {
+            context: Context::default(),
+            payload: ApiGatewayProxyRequest {
+                path: Some("/request-response.js".to_string()),
+                ..Default::default()
+            },
+        };
+
+        let r = my_handler(lambda_event).await.unwrap();
+        assert_eq!(r.status_code, 200);
+    }
+}

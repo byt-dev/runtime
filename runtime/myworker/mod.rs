@@ -9,12 +9,10 @@ use deno_core::Extension;
 use deno_core::FsModuleLoader;
 use deno_core::ModuleSpecifier;
 use deno_core::OpState;
-use deno_core::serde_v8;
 use deno_core::v8;
 use deno_runtime::deno_broadcast_channel::InMemoryBroadcastChannel;
 use deno_runtime::deno_web::BlobStore;
 use deno_runtime::ops::io::Stdio;
-use deno_runtime::permissions::Permissions;
 use deno_runtime::permissions::PermissionsContainer;
 use deno_runtime::worker::MainWorker;
 use deno_runtime::worker::WorkerOptions;
@@ -178,29 +176,76 @@ pub async fn execute_module(
     let mut worker = MainWorker::bootstrap_from_options(main_module.clone(), permissions, options);
 
     const RUNTIME_JAVASCRIPT_CORE: &str = include_str!("./runtime.js");
+
     worker
         .execute_script("[runjs:runtime.js]", RUNTIME_JAVASCRIPT_CORE)
         .unwrap();
 
-    println!("main worker");
-    let module_id = worker.preload_main_module(&main_module).await.unwrap();
-    let result = worker.evaluate_module(module_id).await;
-    let module_namespace = worker.js_runtime.get_module_namespace(module_id).unwrap();
-    let scope = &mut worker.js_runtime.handle_scope();
-    let module_namespace = v8::Local::<v8::Object>::new(scope, module_namespace);
+    let mut js_runtime = worker.js_runtime;
+    let mod_id = js_runtime.load_main_module(&main_module, None).await?;
+    let result = js_runtime.mod_evaluate(mod_id);
+    js_runtime.run_event_loop(false).await?;
 
-    let default_export_name = v8::String::new(scope, "default").unwrap();
-    let binding = module_namespace.get(scope, default_export_name.into());
+    let promise = {
+        let namespace = js_runtime.get_module_namespace(mod_id)?;
+        let scope = &mut js_runtime.handle_scope();
 
-    // log the result of the binding
-    let binding = binding.unwrap();
-    // let binding = binding.to_object(scope).unwrap();
+        let module_namespace = v8::Local::<v8::Object>::new(scope, namespace);
+        let export_fn_name = v8::String::new(scope, "default").unwrap();
+        let export_fn = module_namespace.get(scope, export_fn_name.into()).unwrap();
 
-    // deserialize the binding as struct
-    let binding: serde_json::Value = serde_v8::from_v8(scope, binding).unwrap();
-    println!("binding: {:#?}", binding);
+        // pattern match "export_fn" to ensure it is a function
+        let export_fn = v8::Local::<v8::Function>::try_from(export_fn).unwrap();
 
-    Ok(binding)
+        let arg = v8::String::new(scope, "from rust").unwrap();
+        // make arg a v8::Value
+        let arg = v8::Local::<v8::Value>::try_from(arg).unwrap();
+
+        let called = export_fn.call(scope, module_namespace.into(), &[arg]).unwrap();
+        let called = v8::Global::<v8::Value>::new(scope, called);
+
+        called
+    };
+
+    let resolved = {
+        let resolved = js_runtime.resolve_value(promise).await?;
+        let scope = &mut js_runtime.handle_scope();
+        let resolved = v8::Local::<v8::Value>::new(scope, resolved);
+        // let resolved = v8::Local::<v8::Object>::try_from(resolved).unwrap();
+        let resolved: serde_json::Value = deno_core::serde_v8::from_v8(scope, resolved).unwrap();
+
+        resolved
+        // let to_str = resolved.to_string(scope).unwrap();
+        // let to_str = to_str.to_rust_string_lossy(scope);
+
+        // to_str
+    };
+
+    // parse resolved as json
+
+    println!("RESOLVED: {:?}", resolved);
+    let result = result.await.unwrap();
+
+    if let Err(err) = result {
+        let err = err.to_string();
+        println!("ERROR: {}", err);
+    }
+
+    Ok(resolved)
+    // let binding = resolved.to_object(scope).unwrap();
+    // "resolved" into serde_json::Object
+
+    // let json: serde_json::Value = serde_json::from_str(&resolved.to_string()).unwrap();
+    // Ok(json)
+    // resolved
+    //     .parse::<deno_core::serde_json::Value>()
+    //     .map_err(|_| {
+    //         AnyError::from(std::io::Error::new(
+    //             std::io::ErrorKind::Other,
+    //             "Failed to parse response",
+    //         ))
+    //     })
+
 }
 
 #[cfg(test)]

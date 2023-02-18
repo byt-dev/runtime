@@ -61,7 +61,7 @@ jobs:
         run: |-
           cd byt
           mkdir -p target/release
-          tar --exclude=".git*" --exclude=target --exclude=third_party/prebuilt \
+          tar --exclude=".git*" --exclude=target  \
               -czvf target/release/byt_src.tar.gz -C .. byt
       - uses: dtolnay/rust-toolchain@stable
       - name: Configure canary build

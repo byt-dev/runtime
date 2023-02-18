@@ -2,13 +2,12 @@
   const { core } = Deno[Deno.internal];
   const { ops } = core;
 
-  globalThis.rust = {
-    reverse: (s) => {
-      console.log({s})
-      return ops.op_hello_reverse(s);
+  globalThis.byt = {
+    getEvent: async () => {
+      return await ops.op_byt_get_event_async();
     },
-    listBuckets: async () => {
-      return await ops.op_aws_s3_list_buckets_async();
+    getContext: async () => {
+      return await ops.op_byt_get_context_async();
     }
   }
 })(globalThis);
