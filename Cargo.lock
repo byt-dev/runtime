@@ -804,7 +804,7 @@ checksum = "0d261e256854913907f67ed06efbc3338dfe6179796deefc1ff763fc1aee5535"
 
 [[package]]
 name = "byt-aws-lambda-runtime"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "aws-config",
  "aws-sdk-s3",
@@ -836,7 +836,7 @@ dependencies = [
 
 [[package]]
 name = "byt_cli"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "aws-config",
@@ -866,7 +866,7 @@ dependencies = [
 
 [[package]]
 name = "byt_runtime"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "aws-config",
  "aws-sdk-s3",
