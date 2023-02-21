@@ -1,9 +1,10 @@
 use aws_sdk_s3 as s3;
 use deno_core::{serde_json::{Value}, url::Url, StringOrBuffer};
-use lambda_http::{aws_lambda_events::apigw::{ApiGatewayProxyRequest, ApiGatewayProxyResponse}, http::HeaderMap,  };
+use lambda_http::{aws_lambda_events::apigw::{ApiGatewayProxyRequest, ApiGatewayProxyResponse}, http::HeaderMap, http::header::HeaderName, http::header::HeaderValue};
 use lambda_runtime::{service_fn, Error, LambdaEvent};
 use std::{io::Read, collections::HashMap};
 use byt_runtime::myworker::{execute_module, RequestEvent};
+use std::str::FromStr;
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
@@ -80,16 +81,25 @@ pub(crate) async fn my_handler(event: LambdaEvent<ApiGatewayProxyRequest>) -> Re
         .await
         .unwrap();
 
+    let body = result.body.to_vec();
+    let body = String::from_utf8(body).unwrap();
+    let headers = result.headers;
+    // headers to map
+    let headers: HashMap<String, String> = headers
+        .iter()
+        .map(|(k, v)| (k.to_string(), v.as_str().unwrap().to_string()))
+        .collect();
+    let headers: HeaderMap = headers
+        .iter()
+        .map(|(k, v)| (HeaderName::from_str(k.as_str()).unwrap(), HeaderValue::from_str(v.as_str()).unwrap()))
+        .collect();
+
     let response = ApiGatewayProxyResponse {
         status_code: 200,
         // json headers
-        headers: {
-            let mut h = HeaderMap::new();
-            h.insert("Content-Type", "application/json".parse().unwrap());
-            h
-        },
+        headers,
         multi_value_headers: Default::default(),
-        body: Some(lambda_http::Body::Binary(result.body.to_vec())),
+        body: Some(lambda_http::Body::Text(body)),
         is_base64_encoded: None,
     };
 
@@ -150,6 +160,8 @@ mod test {
 
         let r = my_handler(lambda_event).await.unwrap();
         assert_eq!(r.status_code, 200);
+        assert_eq!(r.body.unwrap(), lambda_http::Body::Text("{\"name\":\"Hello\",\"foo\":1,\"bar\":true,\"baz\":[1,2,\"three\"]}".to_string()));
+        assert_eq!(r.headers.get("content-type").unwrap(), "foo/bar");
     }
 
     #[tokio::test]

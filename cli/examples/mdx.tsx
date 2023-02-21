@@ -4,18 +4,23 @@ import { h } from "https://esm.sh/preact@10.12.1";
 import * as runtime from "https://esm.sh/preact@10.12.1/jsx-runtime";
 import { renderToString } from "https://esm.sh/preact-render-to-string@5.2.6?deps=preact@10.12.1";
 
-export default async (req: Request) => {
+const resolve = async (req: Request) => {
+// the indentation is important here, leading whitespace will mess up the mdx
+// for the `export const Thing`. Not sure if this is a bug or not.
   const content = `
-  export const Thing = () => <>World!</>
+export const Thing = () => <>World!</>
 
-  # Hello, <Thing />
+# Hello <Thing />
 
-  - one
-  - two
-  - three
-  `
+- one
+- two
+- three
+`
 
-  const {default: MdxContent} = await mdx.evaluate(content, {...runtime, development: false });
+  console.log(content);
+
+  const foo = await mdx.compile(content, {outputFormat: 'function-body', development: false });
+  const { default: MdxContent} = await mdx.run(foo, runtime)
 
   const page = (
     <div>
@@ -25,5 +30,12 @@ export default async (req: Request) => {
   );
 
   const html = renderToString(page);
-  return String(html);
+
+  return new Response(html, {
+    headers: {
+      "content-type": "text/html; charset=utf-8",
+    },
+  });
 }
+
+export default resolve
