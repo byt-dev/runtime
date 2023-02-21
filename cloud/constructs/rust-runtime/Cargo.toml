@@ -9,7 +9,7 @@ repository.workspace = true
 
 description = "An AWS Lambda adapter for the Byt Runtime"
 [dependencies]
-lambda_http = { version = "0.7", default-features = false, features = ["apigw_rest"] }
+lambda_http.workspace = true
 lambda_runtime = { version = "0.7" }
 tokio.workspace = true
 aws-config.workspace = true

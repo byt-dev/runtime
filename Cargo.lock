@@ -820,6 +820,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "byt_bundler"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "deno 1.30.2",
+ "deno_ast",
+ "deno_core 0.171.0",
+ "deno_emit",
+ "deno_graph",
+ "deno_runtime 0.97.0",
+ "serde",
+ "tokio",
+]
+
+[[package]]
 name = "byt_cli"
 version = "0.1.0"
 dependencies = [
@@ -827,10 +842,10 @@ dependencies = [
  "aws-config",
  "aws-sdk-cognitoidentityprovider",
  "aws-smithy-client",
+ "byt_bundler",
  "clap 4.1.4",
  "cognito_srp",
  "confy",
- "deno 1.30.2",
  "deno_ast",
  "deno_core 0.171.0",
  "deno_emit",
@@ -855,10 +870,13 @@ version = "0.1.0"
 dependencies = [
  "aws-config",
  "aws-sdk-s3",
+ "byt_bundler",
  "deno 1.30.3",
+ "deno_ast",
  "deno_core 0.171.0",
  "deno_runtime 0.97.0",
  "serde",
+ "tempfile",
  "tokio",
 ]
 

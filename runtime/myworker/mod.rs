@@ -1,14 +1,16 @@
 use aws_sdk_s3 as s3;
+use deno_core::ByteString;
+use deno_core::StringOrBuffer;
+use deno_core::ZeroCopyBuf;
 use deno_core::error::AnyError;
 use deno_core::op;
 use deno_core::serde::Deserialize;
-use deno_core::serde_json;
 use deno_core::serde_json::Map;
 use deno_core::serde_json::Value;
 use deno_core::Extension;
 use deno_core::FsModuleLoader;
-use deno_core::ModuleSpecifier;
 use deno_core::OpState;
+use deno_core::url::Url;
 use deno_core::v8;
 use deno_runtime::deno_broadcast_channel::InMemoryBroadcastChannel;
 use deno_runtime::deno_web::BlobStore;
@@ -17,7 +19,9 @@ use deno_runtime::permissions::PermissionsContainer;
 use deno_runtime::worker::MainWorker;
 use deno_runtime::worker::WorkerOptions;
 use deno_runtime::BootstrapOptions;
+use serde::Serialize;
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -95,19 +99,36 @@ async fn op_aws_s3_list_buckets_async(
     Ok(result)
 }
 
-/// This worker is created and used by almost all
-/// subcommands in Deno executable.
-///
-/// It provides ops available in the `Deno` namespace.
-///
-/// All `WebWorker`s created during program execution
-/// are descendants of this worker.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Response {
+    pub body: ZeroCopyBuf,
+    pub headers: HashMap<String, Value>,
+    pub status: u16,
+    pub status_text: ByteString,
+    pub url: ByteString,
+    pub redirected: bool,
+    pub ok: bool,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RequestEvent {
+    pub method: String,
+    pub request_id: String,
+    pub path: String,
+    pub domain_name: String,
+    pub body: Option<StringOrBuffer>,
+    pub headers: HashMap<String, Value>,
+    pub url: Url
+}
 
 pub async fn execute_module(
-    main_module: ModuleSpecifier,
+    user_code: String,
     sdk_config: aws_config::SdkConfig,
+    event: RequestEvent,
     stdio: Stdio,
-) -> Result<deno_core::serde_json::Value, AnyError> {
+) -> Result<Response, AnyError> {
     let module_loader = Rc::new(FsModuleLoader);
     let create_web_worker_cb = Arc::new(|_| {
         todo!("Web workers are not supported in the example");
@@ -172,17 +193,22 @@ pub async fn execute_module(
         stdio,
     };
 
+    let main_module_specifier_url = Url::parse("file:///entrypoint.ts").unwrap();
+    let side_module_specifier_url = Url::parse("file:///usercode.ts").unwrap();
+
     let permissions = PermissionsContainer::allow_all();
-    let mut worker = MainWorker::bootstrap_from_options(main_module.clone(), permissions, options);
+    let mut worker = MainWorker::bootstrap_from_options(main_module_specifier_url.clone(), permissions, options);
 
     const RUNTIME_JAVASCRIPT_CORE: &str = include_str!("./runtime.js");
+    const ENTRYPOINT_JS: &str = include_str!("./entrypoint.js");
 
     worker
         .execute_script("[runjs:runtime.js]", RUNTIME_JAVASCRIPT_CORE)
         .unwrap();
 
     let mut js_runtime = worker.js_runtime;
-    let mod_id = js_runtime.load_main_module(&main_module, None).await?;
+    let _ = js_runtime.load_side_module(&side_module_specifier_url, Some(user_code)).await?;
+    let mod_id = js_runtime.load_main_module(&main_module_specifier_url, Some(ENTRYPOINT_JS.to_string())).await?;
     let result = js_runtime.mod_evaluate(mod_id);
     js_runtime.run_event_loop(false).await?;
 
@@ -194,10 +220,8 @@ pub async fn execute_module(
         let export_fn_name = v8::String::new(scope, "default").unwrap();
         let export_fn = module_namespace.get(scope, export_fn_name.into()).unwrap();
 
-        // pattern match "export_fn" to ensure it is a function
         let export_fn = v8::Local::<v8::Function>::try_from(export_fn).unwrap();
-
-        let arg = v8::String::new(scope, "from rust").unwrap();
+        let arg = v8::String::new(scope, &event.url.as_str()).unwrap();
         // make arg a v8::Value
         let arg = v8::Local::<v8::Value>::try_from(arg).unwrap();
 
@@ -207,23 +231,22 @@ pub async fn execute_module(
         called
     };
 
-    let resolved = {
+    let resolved: Result<Response, String> = {
         let resolved = js_runtime.resolve_value(promise).await?;
         let scope = &mut js_runtime.handle_scope();
         let resolved = v8::Local::<v8::Value>::new(scope, resolved);
-        // let resolved = v8::Local::<v8::Object>::try_from(resolved).unwrap();
-        let resolved: serde_json::Value = deno_core::serde_v8::from_v8(scope, resolved).unwrap();
+        // handle error and debug
+        let resolved = deno_core::serde_v8::from_v8::<Response>(scope, resolved);
 
-        resolved
-        // let to_str = resolved.to_string(scope).unwrap();
-        // let to_str = to_str.to_rust_string_lossy(scope);
-
-        // to_str
+        match resolved {
+            Ok(value) => {
+                println!("RESOLVED: {:?}", value);
+                Ok(value)
+            },
+            Err(err) => Err(format!("Cannot deserialize value: {err:?}")),
+        }
     };
 
-    // parse resolved as json
-
-    println!("RESOLVED: {:?}", resolved);
     let result = result.await.unwrap();
 
     if let Err(err) = result {
@@ -231,27 +254,18 @@ pub async fn execute_module(
         println!("ERROR: {}", err);
     }
 
+    let resolved = resolved.unwrap();
     Ok(resolved)
-    // let binding = resolved.to_object(scope).unwrap();
-    // "resolved" into serde_json::Object
-
-    // let json: serde_json::Value = serde_json::from_str(&resolved.to_string()).unwrap();
-    // Ok(json)
-    // resolved
-    //     .parse::<deno_core::serde_json::Value>()
-    //     .map_err(|_| {
-    //         AnyError::from(std::io::Error::new(
-    //             std::io::ErrorKind::Other,
-    //             "Failed to parse response",
-    //         ))
-    //     })
-
 }
 
 #[cfg(test)]
 mod test {
+    use std::collections::HashMap;
     use std::path::Path;
-
+    use std::str::FromStr;
+    use byt_bundler::bundle::bundler;
+    use deno_core::serde_json;
+    use std::fs::read_to_string;
     use super::*;
 
     #[test]
@@ -262,31 +276,61 @@ mod test {
 
     #[tokio::test]
     async fn test_runtime() {
+        let url = Url::from_str("http://localhost/hello").unwrap();
+
+        let lambda_event = RequestEvent {
+            method: "GET".to_string(),
+            request_id: "123".to_string(),
+            path: url.path().to_string(),
+            domain_name: url.host_str().unwrap().to_string(),
+            body: None,
+            headers: HashMap::new(),
+            url,
+        };
+
         let sdk_config = aws_config::load_from_env().await;
         let js_path = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("examples")
             .join("hello.js");
-        let main_module = deno_core::resolve_path(&js_path.to_string_lossy()).unwrap();
 
-        let result = execute_module(main_module, sdk_config, Default::default())
+        let code = read_to_string(js_path).unwrap();
+        let result = execute_module(code, sdk_config, lambda_event, Default::default())
             .await
             .unwrap();
-        assert_eq!(result.get("name").unwrap(), "Hello");
+        let body = serde_json::from_slice::<HashMap<String, Value>>(&result.body.to_vec()).unwrap();
+        assert_eq!(result.status, 200);
+        assert_eq!(body.get("name").unwrap(), "Hello");
+        print!("{:?}", result.headers);
+        assert_eq!(result.headers.get("content-type").unwrap(), "application/json");
     }
 
     #[tokio::test]
-    async fn test_runtime_request_handler() {
+    async fn test_runtime_hono() {
+        let url = Url::from_str("http://localhost/hello").unwrap();
+
+        let lambda_event = RequestEvent {
+            method: "GET".to_string(),
+            request_id: "123".to_string(),
+            path: url.path().to_string(),
+            domain_name: url.host_str().unwrap().to_string(),
+            body: None,
+            headers: HashMap::new(),
+            url,
+        };
+
         let sdk_config = aws_config::load_from_env().await;
         let js_path = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("examples")
-            .join("request")
-            .join("wrapper.js");
-        let main_module = deno_core::resolve_path(&js_path.to_string_lossy()).unwrap();
-
-        let result = execute_module(main_module, sdk_config, Default::default())
+            .join("hono")
+            .join("index.js");
+        let bundled = bundler(js_path.to_string_lossy().into_owned()).await.unwrap();
+        let result = execute_module(bundled, sdk_config, lambda_event, Default::default())
             .await
             .unwrap();
-        print!("{:#?}", result);
-        assert_eq!(result.get("statusCode").unwrap(), 200);
+        // Zero-copy conversion from bytes to string
+        let body = String::from_utf8_lossy(&result.body);
+
+        assert_eq!(result.status, 200);
+        assert_eq!(body, "Hello Hono!");
     }
 }

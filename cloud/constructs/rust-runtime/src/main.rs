@@ -1,10 +1,9 @@
 use aws_sdk_s3 as s3;
-use deno_core::serde_json;
-use lambda_http::{aws_lambda_events::apigw::{ApiGatewayProxyRequest, ApiGatewayProxyResponse}, Response, Body, IntoResponse, http::HeaderMap,  };
+use deno_core::{serde_json::{Value}, url::Url, StringOrBuffer};
+use lambda_http::{aws_lambda_events::apigw::{ApiGatewayProxyRequest, ApiGatewayProxyResponse}, http::HeaderMap,  };
 use lambda_runtime::{service_fn, Error, LambdaEvent};
-use serde::{de, ser};
-use std::io::Read;
-use byt_runtime::myworker::execute_module;
+use std::{io::Read, collections::HashMap};
+use byt_runtime::myworker::{execute_module, RequestEvent};
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
@@ -28,11 +27,6 @@ pub(crate) async fn my_handler(event: LambdaEvent<ApiGatewayProxyRequest>) -> Re
     let path = path.trim_start_matches('/').to_string();
     let path = format!("{}.gz", path);
 
-    // path basename without extension
-    let path_obj = std::path::Path::new(&path);
-    let filename = path_obj.file_stem().unwrap().to_str().unwrap().to_string();
-
-
     let request_id = event.context.request_id.clone();
     let sdk_config = aws_config::load_from_env().await;
 
@@ -52,22 +46,40 @@ pub(crate) async fn my_handler(event: LambdaEvent<ApiGatewayProxyRequest>) -> Re
     let mut string_body = String::new();
     flate2::read::GzDecoder::new(&body[..]).read_to_string(&mut string_body).unwrap();
 
-    // write string into file to tmp directory
-    let tmp_dir = std::env::temp_dir();
-    let tmp_dir = tmp_dir.join(format!("byt/{}", request_id));
-    // create directory if not exists
-    std::fs::create_dir_all(&tmp_dir).unwrap();
-    let tmp_file = tmp_dir.join(filename);
-    std::fs::write(&tmp_file, string_body).unwrap();
+    let request_context = event.payload.request_context;
+    let domain_name = request_context.domain_name.clone().unwrap_or_else(|| "".to_string());
+    let url_path = request_context.path.clone().unwrap_or_else(|| "".to_string());
+    let url = Url::parse(&format!("https://{}{}", domain_name, url_path)).unwrap();
+    let method = request_context.http_method.as_str().to_string();
 
-    let main_module = deno_core::resolve_path(&tmp_file.to_string_lossy()).unwrap();
-    let result = execute_module(main_module, sdk_config, Default::default())
+    let headers = event.payload.headers;
+    // headers to HashMap
+    let headers: HashMap<String, Value> = headers
+        .iter()
+        .map(|(k, v)| (k.to_string(), Value::String(v.to_str().unwrap().to_string())))
+        .collect();
+
+    let body = event.payload.body;
+    // body to StringOrBuffer
+    let body: StringOrBuffer = match body {
+        Some(body) => StringOrBuffer::String(body),
+        None => StringOrBuffer::Buffer(vec![].into()),
+    };
+
+    let request_event: RequestEvent = RequestEvent {
+        request_id,
+        domain_name,
+        path: url_path,
+        body: Some(body),
+        headers,
+        method,
+        url,
+    };
+
+    let result = execute_module(string_body, sdk_config, request_event, Default::default())
         .await
         .unwrap();
 
-
-    let body = serde_json::to_string(&result).unwrap();
-    ;
     let response = ApiGatewayProxyResponse {
         status_code: 200,
         // json headers
@@ -77,7 +89,7 @@ pub(crate) async fn my_handler(event: LambdaEvent<ApiGatewayProxyRequest>) -> Re
             h
         },
         multi_value_headers: Default::default(),
-        body: Some(body.into()),
+        body: Some(lambda_http::Body::Binary(result.body.to_vec())),
         is_base64_encoded: None,
     };
 
@@ -86,6 +98,7 @@ pub(crate) async fn my_handler(event: LambdaEvent<ApiGatewayProxyRequest>) -> Re
 
 #[cfg(test)]
 mod test {
+    use lambda_http::{http::Method};
     use lambda_runtime::Context;
     use super::*;
 
@@ -98,7 +111,7 @@ mod test {
         let sdk_config = aws_config::load_from_env().await;
         let client = s3::Client::new(&sdk_config);
         let bucket_name = std::env::var("BUCKET_NAME").unwrap();
-        let key = "hello.js.gz";
+        let key = format!("{}.gz", file_name);
         let mut file = std::fs::File::open(&js_path).unwrap();
         let mut gz = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
         std::io::copy(&mut file, &mut gz).unwrap();
@@ -119,10 +132,18 @@ mod test {
 
         upload_to_s3("hello.js").await;
 
+        let request_context  = lambda_http::aws_lambda_events::apigw::ApiGatewayProxyRequestContext {
+            domain_name: Some("localhost".to_string()),
+            path: Some("/hello.js".to_string()),
+            http_method: Method::GET,
+            ..Default::default()
+        };
+
         let lambda_event = LambdaEvent {
             context: Context::default(),
             payload: ApiGatewayProxyRequest {
                 path: Some("/hello.js".to_string()),
+                request_context,
                 ..Default::default()
             },
         };
@@ -131,15 +152,25 @@ mod test {
         assert_eq!(r.status_code, 200);
     }
 
+    #[tokio::test]
     async fn test_pass_request_response() -> () {
         std::env::set_var("BUCKET_NAME", "cloudspec-lambda-runtime-undefin-mybucketf68f3ff0-1ad53swbdopz7");
 
         upload_to_s3("request-response.js").await;
 
+
+        let request_context  = lambda_http::aws_lambda_events::apigw::ApiGatewayProxyRequestContext {
+            domain_name: Some("localhost".to_string()),
+            path: Some("/request-response.js".to_string()),
+            http_method: Method::GET,
+            ..Default::default()
+        };
+
         let lambda_event = LambdaEvent {
             context: Context::default(),
             payload: ApiGatewayProxyRequest {
                 path: Some("/request-response.js".to_string()),
+                request_context,
                 ..Default::default()
             },
         };
