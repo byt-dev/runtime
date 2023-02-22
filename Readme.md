@@ -10,7 +10,7 @@ We'd love you to contribute in every way you can imagine. Starting by just using
 - Make sure to setup the custom Deno fork as described below
 - Build the AWS Lambda runtime as described below
 - Deploy the [./cloud](./cloud/) AWS CDK part to your AWS account
-- Edit the default config values with the outputs of the CDK deployment. Also see [this issue](https://github.com/byt-dev/runtime/issues/8) to make this easier
+- Edit the [default config](./cli/src/config.rs) values with the outputs of the CDK deployment. Also see [this issue](https://github.com/byt-dev/runtime/issues/8) to make this easier
 - Build the project via `cargo build` to get a custom build of the [./cli](./cli/)
 - Use the built CLI via the `./target/debug/byt`
 
@@ -41,7 +41,7 @@ With that it should be possible to build the entire project
 
 ### Build the AWS Lambda Runtime artifact
 
-The AWS Lambda adapter can be found here [./cloud/constructs/rust-runtime/](./cloud/constructs/rust-runtime) and needs a special build step. It needs to be built with a `x86_64-unknown-linux-musl` target, which caused lots of problems when trying to cross-compile this from macOS aroudn the [rusty-v8](https://github.com/denoland/rusty_v8) crate. So, the build needs to be done via [Docker](https://github.com/awslabs/aws-lambda-rust-runtime/#25-docker) to work reliably across platforms. This build might take a couple of minutes depending on your hardware.
+The AWS Lambda adapter can be found here [./cloud/constructs/rust-runtime/](./cloud/constructs/rust-runtime) and needs a special build step. It needs to be built with a `x86_64-unknown-linux-musl` target, which caused lots of problems when trying to cross-compile this from macOS around the [rusty-v8](https://github.com/denoland/rusty_v8) crate. So, the build needs to be done via [Docker](https://github.com/awslabs/aws-lambda-rust-runtime/#25-docker) to work reliably across platforms. This build might take a couple of minutes depending on your hardware.
 
 The following command needs to be run from the root directory of the project:
 
