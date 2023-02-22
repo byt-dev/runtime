@@ -130,9 +130,9 @@ jobs:
           security import certificate.p12 -k build.keychain -P "${MACOS_CERTIFICATE_PWD}" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "${MACOS_CERTIFICATE_PWD}" build.keychain
           /usr/bin/codesign --force -s ${IDENTITY_ID} ./byt/target/release/byt -v
-      - name: Upload PR artifact (linux)
+      - name: Upload PR artifact (macOS)
         if: |-
-          matrix.profile == 'release' && (matrix.use_sysroot ||
+          matrix.profile == 'release' && (startsWith(matrix.os, 'macOS') &&
           (github.repository == 'byt-dev/runtime' &&
           (github.ref == 'refs/heads/main' ||
           startsWith(github.ref, 'refs/tags/'))))
