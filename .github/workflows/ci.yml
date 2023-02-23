@@ -146,7 +146,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: 'byt-${{ github.event.number }}'
-          path: byt/target/release/byt
+          path: byt/target/release/byt-x86_64-apple-darwin.*
       - name: Pre-release (linux)
         if: |-
           startsWith(matrix.os, 'ubuntu') &&
