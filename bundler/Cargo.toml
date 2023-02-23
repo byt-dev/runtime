@@ -21,3 +21,4 @@ deno_ast.workspace = true
 deno_emit = "0.14.0"
 deno_graph = "0.42.0"
 anyhow = "1.0.69"
+log = "0.4.17"

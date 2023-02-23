@@ -1,4 +1,3 @@
-import { ulid } from "ulid";
 import * as fs from "fs";
 import * as path from "path";
 import * as jose from "jose";
@@ -79,7 +78,8 @@ export const handler = async (event: any, _context: any) => {
   }
 
   request.headers = allowedHeaders;
-  request.uri = `/${username}/${ulid()}.gz`;
+  const uri = path.join('/', username, request.uri);
+  request.uri = uri;
 
   return request;
 };

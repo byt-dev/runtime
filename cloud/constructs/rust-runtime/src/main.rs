@@ -2,7 +2,7 @@ use aws_sdk_s3 as s3;
 use deno_core::{serde_json::{Value}, url::Url, StringOrBuffer};
 use lambda_http::{aws_lambda_events::apigw::{ApiGatewayProxyRequest, ApiGatewayProxyResponse}, http::HeaderMap, http::header::HeaderName, http::header::HeaderValue};
 use lambda_runtime::{service_fn, Error, LambdaEvent};
-use std::{io::Read, collections::HashMap};
+use std::{io::Read, collections::HashMap, sync::Arc};
 use byt_runtime::myworker::{execute_module, RequestEvent};
 use std::str::FromStr;
 
@@ -52,6 +52,14 @@ pub(crate) async fn my_handler(event: LambdaEvent<ApiGatewayProxyRequest>) -> Re
     let url_path = request_context.path.clone().unwrap_or_else(|| "".to_string());
     let url = Url::parse(&format!("https://{}{}", domain_name, url_path)).unwrap();
     let method = request_context.http_method.as_str().to_string();
+    // add query string to url
+    let query_string = event.payload.query_string_parameters;
+    let query_string = query_string
+        .iter()
+        .map(|(k, v)| format!("{}={}", k, v))
+        .collect::<Vec<String>>()
+        .join("&");
+    let url = Url::parse(&format!("{}?{}", url, query_string)).unwrap();
 
     let headers = event.payload.headers;
     // headers to HashMap
@@ -93,6 +101,8 @@ pub(crate) async fn my_handler(event: LambdaEvent<ApiGatewayProxyRequest>) -> Re
         .iter()
         .map(|(k, v)| (HeaderName::from_str(k.as_str()).unwrap(), HeaderValue::from_str(v.as_str()).unwrap()))
         .collect();
+    // ckeck if header contains X-Is-Base64
+    let is_base64_encoded = headers.contains_key("x-is-base64");
 
     let response = ApiGatewayProxyResponse {
         status_code: 200,
@@ -100,7 +110,7 @@ pub(crate) async fn my_handler(event: LambdaEvent<ApiGatewayProxyRequest>) -> Re
         headers,
         multi_value_headers: Default::default(),
         body: Some(lambda_http::Body::Text(body)),
-        is_base64_encoded: None,
+        is_base64_encoded: Some(is_base64_encoded),
     };
 
     Ok(response)
@@ -108,7 +118,7 @@ pub(crate) async fn my_handler(event: LambdaEvent<ApiGatewayProxyRequest>) -> Re
 
 #[cfg(test)]
 mod test {
-    use lambda_http::{http::Method};
+    use lambda_http::{http::Method, aws_lambda_events::query_map::QueryMap};
     use lambda_runtime::Context;
     use super::*;
 
@@ -178,16 +188,51 @@ mod test {
             ..Default::default()
         };
 
+        let query_map = QueryMap::from_str("foo=bar&baz=qux").unwrap();
+
         let lambda_event = LambdaEvent {
             context: Context::default(),
             payload: ApiGatewayProxyRequest {
                 path: Some("/request-response.js".to_string()),
                 request_context,
+                query_string_parameters: query_map,
                 ..Default::default()
             },
         };
 
         let r = my_handler(lambda_event).await.unwrap();
         assert_eq!(r.status_code, 200);
+        assert_eq!(r.is_base64_encoded, Some(false));
+    }
+
+        #[tokio::test]
+    async fn test_pass_base64() -> () {
+        std::env::set_var("BUCKET_NAME", "cloudspec-lambda-runtime-undefin-mybucketf68f3ff0-1ad53swbdopz7");
+
+        upload_to_s3("base64.js").await;
+
+
+        let request_context  = lambda_http::aws_lambda_events::apigw::ApiGatewayProxyRequestContext {
+            domain_name: Some("localhost".to_string()),
+            path: Some("/base64.js".to_string()),
+            http_method: Method::GET,
+            ..Default::default()
+        };
+
+        let query_map = QueryMap::from_str("foo=bar&baz=qux").unwrap();
+
+        let lambda_event = LambdaEvent {
+            context: Context::default(),
+            payload: ApiGatewayProxyRequest {
+                path: Some("/base64.js".to_string()),
+                request_context,
+                query_string_parameters: query_map,
+                ..Default::default()
+            },
+        };
+
+        let r = my_handler(lambda_event).await.unwrap();
+        assert_eq!(r.status_code, 200);
+        assert_eq!(r.is_base64_encoded, Some(true));
     }
 }

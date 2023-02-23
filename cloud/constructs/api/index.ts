@@ -18,9 +18,12 @@ export class Api extends Construct {
       deployOptions: {
         stageName: 'prod',
       },
+      binaryMediaTypes: ['image/*', 'image/webp', 'image/png', 'image/jpeg', 'image/gif', 'image/svg+xml', 'application/octet-stream'],
     })
 
-    const integration = new cdk.aws_apigateway.LambdaIntegration(props.lambda)
+    const integration = new cdk.aws_apigateway.LambdaIntegration(props.lambda, {
+      contentHandling: cdk.aws_apigateway.ContentHandling.CONVERT_TO_BINARY,
+    })
 
     const resource = api.root.addResource('{proxy+}')
     resource.addMethod('ANY', integration)

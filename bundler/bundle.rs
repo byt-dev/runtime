@@ -1,13 +1,18 @@
 use anyhow::Error;
+use deno_cli::args::ConfigFlag;
+use deno_cli::args::TypeCheckMode;
 use crate::bundle_inline::bundle;
 use deno_cli::args::Flags;
 use deno_cli::args::BundleFlags;
 
+
 pub async fn bundler(
   root: String,
 ) -> Result<String, Error> {
-
   let flags = Flags {
+    type_check_mode: TypeCheckMode::None,
+    config_flag: ConfigFlag::Disabled,
+    log_level: Some(log::Level::Warn),
     ..Default::default()
   };
 
