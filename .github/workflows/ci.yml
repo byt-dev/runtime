@@ -51,6 +51,11 @@ jobs:
           repository: "skorfmann/deno"
           ref: "rust-cli"
           path: deno
+      - name: Install Homebrew dependencies
+        if: |-
+          startsWith(matrix.os, 'macOS')
+        run: |
+          env HOMEBREW_NO_AUTO_UPDATE=1 brew install mitchellh/gon/gon
       - name: 'Create source tarballs (release, linux)'
         if: |-
           startsWith(matrix.os, 'ubuntu') &&
@@ -129,7 +134,8 @@ jobs:
           security unlock-keychain -p "${MACOS_CERTIFICATE_PWD}" build.keychain
           security import certificate.p12 -k build.keychain -P "${MACOS_CERTIFICATE_PWD}" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "${MACOS_CERTIFICATE_PWD}" build.keychain
-          /usr/bin/codesign --force -s ${IDENTITY_ID} ./byt/target/release/byt -v
+          cd byt
+          gon release_tools/gon.hcl
       - name: Upload PR artifact (macOS)
         if: |-
           matrix.profile == 'release' && (startsWith(matrix.os, 'macOS') &&
@@ -149,16 +155,6 @@ jobs:
         run: |-
           cd byt/target/release
           zip -r byt-x86_64-unknown-linux-gnu.zip byt
-      - name: Pre-release (mac)
-        if: |-
-          !(github.event_name == 'pull_request' && matrix.skip_pr) && (steps.exit_early.outputs.EXIT_EARLY != 'true' && (startsWith(matrix.os, 'macOS') &&
-          matrix.job == 'test' &&
-          matrix.profile == 'release' &&
-          github.repository == 'byt-dev/runtime' &&
-          (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))))
-        run: |-
-          cd byt/target/release
-          zip -r byt-x86_64-apple-darwin.zip byt
       - name: Pre-release (windows)
         if: |-
           !(github.event_name == 'pull_request' && matrix.skip_pr) && (steps.exit_early.outputs.EXIT_EARLY != 'true' && (startsWith(matrix.os, 'windows') &&
@@ -194,6 +190,7 @@ jobs:
             byt/target/release/byt-x86_64-pc-windows-msvc.zip
             byt/target/release/byt-x86_64-unknown-linux-gnu.zip
             byt/target/release/byt-x86_64-apple-darwin.zip
+            byt/target/release/byt-x86_64-apple-darwin.dmg
             byt/target/release/byt_src.tar.gz
           draft: true
       - name: Save cache build output (main)
