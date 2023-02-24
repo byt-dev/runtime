@@ -90,7 +90,6 @@ const foo = async () => {
     headers: {
       "Content-Type": "image/png",
       "x-is-base64": "true",
-      "Content-Disposition": `attachment; filename="filename.png"`,
     },
   });
 }
