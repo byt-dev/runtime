@@ -32,7 +32,7 @@ export const handler = async (event: any, _context: any) => {
   // extract Bearer token
   const [, jwt] = token.split(' ');
 
-  let username: string;
+  let project: string;
 
   try {
     const { payload } = await jose.jwtVerify(jwt, jwks, {
@@ -40,7 +40,7 @@ export const handler = async (event: any, _context: any) => {
     });
 
     console.log({payload})
-    username = payload.username as string;
+    project = payload.defaultProject as string;
   }
   catch (e) {
     console.log({e})
@@ -78,7 +78,7 @@ export const handler = async (event: any, _context: any) => {
   }
 
   request.headers = allowedHeaders;
-  const uri = path.join('/', username, request.uri);
+  const uri = path.join('/', project, request.uri);
   request.uri = uri;
 
   return request;

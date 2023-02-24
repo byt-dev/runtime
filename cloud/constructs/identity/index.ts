@@ -1,6 +1,7 @@
 import { Construct } from 'constructs';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
-import { Fn, RemovalPolicy } from 'aws-cdk-lib';
+import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
+import { Duration, Fn, RemovalPolicy } from 'aws-cdk-lib';
 
 interface IdentityProps {
 }
@@ -21,7 +22,6 @@ export class Identity extends Construct {
       autoVerify: {
         email: true,
       },
-      standardAttributes: {},
       passwordPolicy: {
         minLength: 8,
         requireLowercase: true,
@@ -33,6 +33,14 @@ export class Identity extends Construct {
       removalPolicy: RemovalPolicy.RETAIN,
     });
 
+    const preTokenTrigger = new NodejsFunction(this, 'pre-token-trigger', {
+      logRetention: 7,
+      memorySize: 128,
+      timeout: Duration.seconds(5),
+    });
+
+    this.userPool.addTrigger(cognito.UserPoolOperation.PRE_TOKEN_GENERATION, preTokenTrigger);
+
     this.client = this.userPool.addClient('app-client', {
       authFlows: {
         userPassword: false,
@@ -40,6 +48,7 @@ export class Identity extends Construct {
         custom: false,
       },
       generateSecret: false,
+      idTokenValidity: Duration.days(1),
     });
 
     // this.identityPool = new IdentityPool(this, 'myIdentityPool', {

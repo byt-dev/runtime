@@ -35,7 +35,7 @@ pub async fn deploy(path: &String) -> Result<(), anyhow::Error> {
     let client = reqwest::Client::new();
     let res = client
         .put(url)
-        .bearer_auth(config.access_token.unwrap())
+        .bearer_auth(config.id_token.unwrap())
         .body(e.finish()?)
         .send()
         .await;

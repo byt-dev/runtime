@@ -34,14 +34,14 @@ export class Api extends Construct {
     });
 
     const cert = new cdk.aws_certificatemanager.Certificate(this, 'Certificate', {
-      domainName: 'run.byt.dev',
+      domainName: '*.run.byt.dev',
       certificateName: 'Byt Run Service', // Optionally provide an certificate name
       validation: cdk.aws_certificatemanager.CertificateValidation.fromDns(myHostedZone),
     });
 
     // wildcard domain name
     const apiDomain = new cdk.aws_apigateway.DomainName(this, 'domain', {
-      domainName: 'run.byt.dev',
+      domainName: '*.run.byt.dev',
       endpointType: cdk.aws_apigateway.EndpointType.EDGE,
       mapping: api,
       certificate: cdk.aws_certificatemanager.Certificate.fromCertificateArn(
@@ -53,7 +53,7 @@ export class Api extends Construct {
 
     new cdk.aws_route53.ARecord(this, "apiDNS", {
       zone: myHostedZone,
-      recordName: "run.byt.dev",
+      recordName: "*.run.byt.dev",
       target: cdk.aws_route53.RecordTarget.fromAlias(
         new cdk.aws_route53_targets.ApiGatewayDomain(apiDomain)
       ),

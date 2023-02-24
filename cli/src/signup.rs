@@ -31,11 +31,17 @@ pub async fn signup(username: &String, email: &String) -> Result<(), CognitoSrpA
         .value(email.to_string())
         .build();
 
+    let preferred_username_attribute = aws_sdk_cognitoidentityprovider::model::AttributeType::builder()
+        .name("preferred_username".to_string())
+        .value(username.to_string())
+        .build();
+
     let op = client.sign_up()
         .client_id(config.client_id)
-        .username(username.to_string())
+        .username(email.to_string())
         .password(password)
-        .user_attributes(email_attribute);
+        .user_attributes(email_attribute)
+        .user_attributes(preferred_username_attribute);
 
     let res = op.send().await;
     println!("{:?}", res);
