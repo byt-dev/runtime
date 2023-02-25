@@ -92,6 +92,7 @@ pub(crate) async fn my_handler(event: LambdaEvent<ApiGatewayProxyRequest>) -> Re
         headers,
         method,
         url,
+        tenant
     };
 
     let result = execute_module(string_body, sdk_config, request_event, Default::default())
@@ -157,6 +158,30 @@ mod test {
         put_object.send().await.unwrap();
     }
 
+     // this gzips the file and uploads it to s3 as file_name.gz
+    async fn upload_static_to_s3(file_name: &str, tenant: &str) {
+        let js_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("fixtures")
+            .join(file_name);
+
+        let sdk_config = aws_config::load_from_env().await;
+        let client = s3::Client::new(&sdk_config);
+        let bucket_name = std::env::var("BUCKET_NAME").unwrap();
+        let key = format!("{}/static/{}.gz", tenant, file_name);
+        let mut file = std::fs::File::open(&js_path).unwrap();
+        let mut gz = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
+        std::io::copy(&mut file, &mut gz).unwrap();
+        let gz = gz.finish().unwrap();
+        let gz = aws_sdk_s3::types::ByteStream::from(gz);
+
+        let put_object = client
+            .put_object()
+            .bucket(bucket_name)
+            .key(key)
+            .body(gz);
+        put_object.send().await.unwrap();
+    }
+
     #[tokio::test]
     async fn test_run_simple_file() -> () {
         std::env::set_var("BUCKET_NAME", "cloudspec-lambda-runtime-undefin-mybucketf68f3ff0-1ad53swbdopz7");
@@ -191,7 +216,6 @@ mod test {
         std::env::set_var("BUCKET_NAME", "cloudspec-lambda-runtime-undefin-mybucketf68f3ff0-1ad53swbdopz7");
 
         upload_to_s3("request-response.js", "aTenant").await;
-
 
         let request_context  = lambda_http::aws_lambda_events::apigw::ApiGatewayProxyRequestContext {
             domain_name: Some("localhost".to_string()),
@@ -280,5 +304,37 @@ mod test {
         let r = my_handler(lambda_event).await.unwrap();
         assert_eq!(r.status_code, 200);
         assert_eq!(r.is_base64_encoded, Some(true));
+    }
+
+    #[tokio::test]
+    async fn test_get_file() -> () {
+        std::env::set_var("BUCKET_NAME", "cloudspec-lambda-runtime-undefin-mybucketf68f3ff0-1ad53swbdopz7");
+
+        upload_to_s3("get-file.js", "aTenant").await;
+        upload_static_to_s3("file.txt", "aTenant").await;
+
+        let request_context  = lambda_http::aws_lambda_events::apigw::ApiGatewayProxyRequestContext {
+            domain_name: Some("localhost".to_string()),
+            path: Some("/get-file".to_string()),
+            http_method: Method::GET,
+            domain_prefix: Some("aTenant".to_string()),
+            ..Default::default()
+        };
+
+        let query_map = QueryMap::from_str("foo=bar&baz=qux").unwrap();
+
+        let lambda_event = LambdaEvent {
+            context: Context::default(),
+            payload: ApiGatewayProxyRequest {
+                path: Some("/get-file".to_string()),
+                request_context,
+                query_string_parameters: query_map,
+                ..Default::default()
+            },
+        };
+
+        let r = my_handler(lambda_event).await.unwrap();
+        assert_eq!(r.status_code, 200);
+        assert_eq!(r.body.unwrap(), lambda_http::Body::Text("{\"file\":\"Hello world from file.txt\"}".to_string()));
     }
 }

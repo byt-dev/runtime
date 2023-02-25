@@ -1,8 +1,6 @@
-const stari = Byt.service("satori")
-
 export default async () => {
   const html = `
-  <img src="https://run.byt.dev/20da6b64-d502-468a-b425-fe8697dd9e7a/satori">
+  <img src="https://skorfmann.run.byt.dev/satori_storage">
 `
   return new Response(html, {
     status: 200,

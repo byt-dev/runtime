@@ -22,6 +22,7 @@ use deno_runtime::BootstrapOptions;
 use serde::Serialize;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::io::Read;
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -78,9 +79,10 @@ fn op_hello_reverse(input: String) -> Result<String, AnyError> {
 }
 
 #[op]
-async fn op_aws_s3_list_buckets_async(
+async fn op_byt_files_get_async(
     state: Rc<RefCell<OpState>>,
-) -> Result<Vec<String>, AnyError> {
+    path: String,
+) -> Result<Box<[u8]>, AnyError> {
     let client = {
         // state needs to be dropped before client is used. Otherwise, the mutable borrow in deno_ffi will fail.
         // e.g. "thread 'main' panicked at 'already borrowed: BorrowMutError'"
@@ -89,13 +91,28 @@ async fn op_aws_s3_list_buckets_async(
         let client = s3::Client::new(config);
         client
     };
-    let resp = client.list_buckets().send().await?;
+    let byt_op_config: BytOpConfig = {
+        let op_state_ = state.borrow();
+        let byt_op_config = op_state_.borrow::<BytOpConfig>();
+        byt_op_config.clone()
+    };
+
+    let key = format!("{}/static/{}.gz", byt_op_config.tenant, path);
+    println!("key: {}", key);
+    println!("bucket: {}", byt_op_config.bucket);
+
+    let resp = client.get_object().bucket(byt_op_config.bucket).key(key).send().await?;
     let result = resp
-        .buckets
-        .unwrap()
-        .iter()
-        .map(|b| b.name.clone().unwrap())
-        .collect::<Vec<String>>();
+        .body;
+
+    // result to Box<[u8]>
+    let result = result.collect().await?;
+    let result = result.to_vec();
+    // ungzip
+    let result = flate2::read::GzDecoder::new(result.as_slice());
+    let result = result.bytes().collect::<Result<Vec<u8>, _>>()?;
+    let result = result.into_boxed_slice();
+
     Ok(result)
 }
 
@@ -120,7 +137,14 @@ pub struct RequestEvent {
     pub domain_name: String,
     pub body: Option<StringOrBuffer>,
     pub headers: HashMap<String, Value>,
-    pub url: Url
+    pub url: Url,
+    pub tenant: String,
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct BytOpConfig {
+    pub bucket: String,
+    pub tenant: String,
 }
 
 pub async fn execute_module(
@@ -137,16 +161,22 @@ pub async fn execute_module(
         todo!("Web workers are not supported in the example");
     });
 
+    let bucket_name = std::env::var("BUCKET_NAME").unwrap();
+
     let runjs_extension = Extension::builder("byt")
         .ops(vec![
             op_extension_plan::decl(),
-            op_aws_s3_list_buckets_async::decl(),
+            op_byt_files_get_async::decl(),
             op_execution_mode::decl(),
             op_extension_payload::decl(),
             op_hello_reverse::decl(),
         ])
         .state(move |state| {
             state.put::<aws_config::SdkConfig>(sdk_config.clone());
+            state.put::<BytOpConfig>(BytOpConfig {
+                bucket: bucket_name.clone(),
+                tenant: event.tenant.clone(),
+            });
             Ok(())
         })
         .build();
@@ -286,6 +316,7 @@ mod test {
             body: None,
             headers: HashMap::new(),
             url,
+            tenant: "tenant".to_string(),
         };
 
         let sdk_config = aws_config::load_from_env().await;
@@ -316,6 +347,7 @@ mod test {
             body: None,
             headers: HashMap::new(),
             url,
+            tenant: "tenant".to_string(),
         };
 
         let sdk_config = aws_config::load_from_env().await;

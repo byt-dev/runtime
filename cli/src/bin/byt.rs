@@ -14,7 +14,8 @@ fn cli() -> Command {
             Command::new("login")
                 .about("Login to byt.dev")
                 .arg(arg!(<USERNAME> "The username"))
-                .arg_required_else_help(true),
+                .arg_required_else_help(true)
+
         )
         .subcommand(
             Command::new("signup")
@@ -34,6 +35,11 @@ fn cli() -> Command {
             Command::new("deploy")
                 .about("Deploy a file to byt.dev")
                 .arg(arg!(<PATH> "The file to deploy"))
+                .arg(
+                    arg!(skip: -s --skip "Skip deployment of static files")
+                    .required(false)
+                )
+
         )
         .subcommand(
             Command::new("version")
@@ -73,11 +79,17 @@ async fn main() -> Result<(), anyhow::Error> {
             confirm(username, code).await?;
         }
         Some(("deploy", sub_matches)) => {
+            let path = sub_matches.get_one::<String>("PATH").expect("required");
+            let skip = sub_matches.get_one::<bool>("skip");
+            let skip = match skip {
+                Some(skip) => skip,
+                None => &false
+            };
             println!(
                 "Deploying {}",
-                sub_matches.get_one::<String>("PATH").expect("required")
+                path
             );
-            deploy(sub_matches.get_one::<String>("PATH").expect("required")).await?;
+            deploy(path, *skip).await?;
         }
         Some(("version", _)) => {
             println!("byt version {}", env!("CARGO_PKG_VERSION"));

@@ -28,3 +28,4 @@ serde.workspace = true
 deno_ast.workspace = true
 byt_bundler.workspace = true
 tempfile = "3.3.0"
+flate2 = "1.0.24"

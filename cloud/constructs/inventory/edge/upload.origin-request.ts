@@ -75,6 +75,8 @@ export const handler = async (event: any, _context: any) => {
     'via': headers['via'],
     'content-length': headers['content-length'],
     'accept-encoding': headers['accept-encoding'],
+    'content-type': headers['content-type'],
+    'content-encoding': headers['content-encoding'],
   }
 
   request.headers = allowedHeaders;
