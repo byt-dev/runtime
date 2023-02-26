@@ -13,6 +13,9 @@
       return ops.op_byt_files_get_async(path).then((result) => {
         return new Uint8Array(result);
       });
+    },
+    listFiles: async (path) => {
+      return ops.op_byt_files_list_async(path);
     }
   }
 })(globalThis);

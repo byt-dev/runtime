@@ -116,6 +116,74 @@ async fn op_byt_files_get_async(
     Ok(result)
 }
 
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct BytFile {
+    pub path: String,
+    pub content: Box<[u8]>,
+    pub name: String,
+    pub size: u64,
+    pub last_modified: u64,
+    pub mime_type: String,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct BytFileListEntry {
+    pub path: String,
+    pub name: String,
+    pub ext: String,
+}
+
+#[op]
+async fn op_byt_files_list_async(
+    state: Rc<RefCell<OpState>>,
+    path: Option<String>,
+) -> Result<Vec<BytFileListEntry>, AnyError> {
+    let client = {
+        // state needs to be dropped before client is used. Otherwise, the mutable borrow in deno_ffi will fail.
+        // e.g. "thread 'main' panicked at 'already borrowed: BorrowMutError'"
+        let opstate_ = state.borrow();
+        let config = opstate_.borrow::<aws_config::SdkConfig>();
+        let client = s3::Client::new(config);
+        client
+    };
+    let byt_op_config: BytOpConfig = {
+        let op_state_ = state.borrow();
+        let byt_op_config = op_state_.borrow::<BytOpConfig>();
+        byt_op_config.clone()
+    };
+
+    let key = format!("{}/static/{}", byt_op_config.tenant, path.unwrap_or("".to_string()));
+    println!("key: {}", key);
+    println!("bucket: {}", byt_op_config.bucket);
+
+    let resp = client.list_objects_v2().bucket(byt_op_config.bucket).prefix(key).send().await?;
+    let result = resp.contents.unwrap();
+
+    let result = result.into_iter().map(|x| {
+        let path = x.key.clone().unwrap();
+        // clean up path from key
+        let path = path.replace(&format!("{}/static/", byt_op_config.tenant), "");
+        // clean up path from `.gz`
+        let path = path.replace(".gz", "");
+        let name = path.split('/').last().unwrap().to_string();
+        // name without extension
+        let name = name.split('.').next().unwrap().to_string();
+        let ext = path.split('.').last().unwrap().to_string();
+        BytFileListEntry {
+            path,
+            name,
+            ext,
+        }
+    }).collect();
+
+    Ok(result)
+}
+
+
+
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Response {
@@ -167,6 +235,7 @@ pub async fn execute_module(
         .ops(vec![
             op_extension_plan::decl(),
             op_byt_files_get_async::decl(),
+            op_byt_files_list_async::decl(),
             op_execution_mode::decl(),
             op_extension_payload::decl(),
             op_hello_reverse::decl(),

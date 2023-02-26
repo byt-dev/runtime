@@ -337,4 +337,37 @@ mod test {
         assert_eq!(r.status_code, 200);
         assert_eq!(r.body.unwrap(), lambda_http::Body::Text("{\"file\":\"Hello world from file.txt\"}".to_string()));
     }
+
+    #[tokio::test]
+    async fn test_list_files() -> () {
+        std::env::set_var("BUCKET_NAME", "cloudspec-lambda-runtime-undefin-mybucketf68f3ff0-1ad53swbdopz7");
+
+        upload_to_s3("list-files.js", "aTenant").await;
+        upload_static_to_s3("file.txt", "aTenant").await;
+
+        let request_context  = lambda_http::aws_lambda_events::apigw::ApiGatewayProxyRequestContext {
+            domain_name: Some("localhost".to_string()),
+            path: Some("/list-files".to_string()),
+            http_method: Method::GET,
+            domain_prefix: Some("aTenant".to_string()),
+            ..Default::default()
+        };
+
+        let query_map = QueryMap::from_str("foo=bar&baz=qux").unwrap();
+
+        let lambda_event = LambdaEvent {
+            context: Context::default(),
+            payload: ApiGatewayProxyRequest {
+                path: Some("/list-files".to_string()),
+                request_context,
+                query_string_parameters: query_map,
+                ..Default::default()
+            },
+        };
+
+        let r = my_handler(lambda_event).await.unwrap();
+        assert_eq!(r.status_code, 200);
+        assert_eq!(r.body.unwrap(), lambda_http::Body::Text("{\"files\":[{\"path\":\"file.txt\",\"name\":\"file\",\"ext\":\"txt\"}]}".to_string()));
+
+    }
 }

@@ -5,35 +5,6 @@ import * as runtime from "https://esm.sh/preact@10.12.1/jsx-runtime";
 import { renderToString } from "https://esm.sh/preact-render-to-string@5.2.6?deps=preact@10.12.1";
 import { Hono } from 'https://deno.land/x/hono/mod.ts'
 
-const firstPost = `
-export const Thing = () => <>World!</>
-
-# Hello first Post <Thing />
-
-- one
-- two
-- three
-
-[Back](/mdx)
-`
-
-const secondPost = `
-export const Thing = () => <>World!</>
-
-# Hello second Post <Thing />
-
-- one
-- two
-- three
-
-[Back](/mdx)
-`
-
-const posts = {
-  first: firstPost,
-  second: secondPost,
-}
-
 const renderPage = async (content) => {
   const foo = await mdx.compile(content, {outputFormat: 'function-body', development: false });
   const { default: MdxContent} = await mdx.run(foo, runtime)
@@ -61,14 +32,19 @@ const template = (html) => (`
 const app = new Hono()
 
 app.all('/mdx', async (c) => {
+  const posts = await byt.listFiles()
+
   // tailwindcss styles
   const page = (
     <body>
       <div>
         <h1 class="text-3xl font-bold underline">Posts</h1>
         <ul role="list" className="divide-y divide-gray-200">
-          <li class="relative bg-white py-5 px-4 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-600 hover:bg-gray-50"><a href="/mdx/first">First Post</a></li>
-          <li class="relative bg-white py-5 px-4 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-600 hover:bg-gray-50"><a href="/mdx/second">Second Post</a></li>
+          {posts.map((post) => (
+            <li class="relative bg-white py-5 px-4 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-600 hover:bg-gray-50">
+              <a href={`/mdx/${post.name}`}>{post.name}</a>
+            </li>
+          ))}
         </ul>
       </div>
     </body>
@@ -81,14 +57,11 @@ app.all('/mdx', async (c) => {
 })
 
 app.get('/mdx/:page', async (c) => {
-  const page = c.req.param('page')
-  if (!posts[page]) {
-    return c.html(notFound(), 404)
-  }
-  const content = posts[page];
-
-  const html = await renderPage(content)
-  return c.html(template(html))
+  const page = c.req.param('page');
+  const post = await byt.getFile(`${page}.mdx`);
+  const text = new TextDecoder().decode(post);
+  const html = await renderPage(text)
+  return c.html(template(html));
 })
 
 app.notFound((c) => {
