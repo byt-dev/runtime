@@ -185,6 +185,7 @@ mod test {
     #[tokio::test]
     async fn test_run_simple_file() -> () {
         std::env::set_var("BUCKET_NAME", "cloudspec-lambda-runtime-undefin-mybucketf68f3ff0-1ad53swbdopz7");
+        std::env::set_var("TABLE_NAME", "CloudSpec-lambda-runtime-undefined-sebastian-dce506d4-LambdaRuntimeTable04CE3B76-11QW0MPWUJ0MX");
 
         upload_to_s3("hello.js", "aTenant").await;
 
@@ -214,6 +215,7 @@ mod test {
     #[tokio::test]
     async fn test_pass_request_response() -> () {
         std::env::set_var("BUCKET_NAME", "cloudspec-lambda-runtime-undefin-mybucketf68f3ff0-1ad53swbdopz7");
+        std::env::set_var("TABLE_NAME", "CloudSpec-lambda-runtime-undefined-sebastian-dce506d4-LambdaRuntimeTable04CE3B76-11QW0MPWUJ0MX");
 
         upload_to_s3("request-response.js", "aTenant").await;
 
@@ -245,6 +247,7 @@ mod test {
     #[tokio::test]
     async fn test_pass_base64() -> () {
         std::env::set_var("BUCKET_NAME", "cloudspec-lambda-runtime-undefin-mybucketf68f3ff0-1ad53swbdopz7");
+        std::env::set_var("TABLE_NAME", "CloudSpec-lambda-runtime-undefined-sebastian-dce506d4-LambdaRuntimeTable04CE3B76-11QW0MPWUJ0MX");
 
         upload_to_s3("base64.js", "aTenant").await;
 
@@ -277,6 +280,7 @@ mod test {
     #[tokio::test]
     async fn test_routes_to_first_path_segment() -> () {
         std::env::set_var("BUCKET_NAME", "cloudspec-lambda-runtime-undefin-mybucketf68f3ff0-1ad53swbdopz7");
+        std::env::set_var("TABLE_NAME", "CloudSpec-lambda-runtime-undefined-sebastian-dce506d4-LambdaRuntimeTable04CE3B76-11QW0MPWUJ0MX");
 
         upload_to_s3("base64.js", "aTenant").await;
 
@@ -309,6 +313,7 @@ mod test {
     #[tokio::test]
     async fn test_get_file() -> () {
         std::env::set_var("BUCKET_NAME", "cloudspec-lambda-runtime-undefin-mybucketf68f3ff0-1ad53swbdopz7");
+        std::env::set_var("TABLE_NAME", "CloudSpec-lambda-runtime-undefined-sebastian-dce506d4-LambdaRuntimeTable04CE3B76-11QW0MPWUJ0MX");
 
         upload_to_s3("get-file.js", "aTenant").await;
         upload_static_to_s3("file.txt", "aTenant").await;
@@ -339,8 +344,43 @@ mod test {
     }
 
     #[tokio::test]
+    async fn test_ddb_put_item() -> () {
+        std::env::set_var("BUCKET_NAME", "cloudspec-lambda-runtime-undefin-mybucketf68f3ff0-1ad53swbdopz7");
+        std::env::set_var("TABLE_NAME", "CloudSpec-lambda-runtime-undefined-sebastian-dce506d4-LambdaRuntimeTable04CE3B76-11QW0MPWUJ0MX");
+
+        upload_to_s3("ddb-put-item.js", "aTenant").await;
+
+        let request_context  = lambda_http::aws_lambda_events::apigw::ApiGatewayProxyRequestContext {
+            domain_name: Some("localhost".to_string()),
+            path: Some("/ddb-put-item".to_string()),
+            http_method: Method::GET,
+            domain_prefix: Some("aTenant".to_string()),
+            ..Default::default()
+        };
+
+        let query_map = QueryMap::from_str("foo=bar&baz=qux").unwrap();
+
+        let lambda_event = LambdaEvent {
+            context: Context::default(),
+            payload: ApiGatewayProxyRequest {
+                path: Some("/ddb-put-item".to_string()),
+                request_context,
+                query_string_parameters: query_map,
+                ..Default::default()
+            },
+        };
+
+        let r = my_handler(lambda_event).await.unwrap();
+        assert_eq!(r.status_code, 200);
+        assert_eq!(r.body.unwrap(), lambda_http::Body::Text("{\"foo\":\"bar\",\"baz\":\"qux\"}".to_string()));
+
+    }
+
+
+        #[tokio::test]
     async fn test_list_files() -> () {
         std::env::set_var("BUCKET_NAME", "cloudspec-lambda-runtime-undefin-mybucketf68f3ff0-1ad53swbdopz7");
+        std::env::set_var("TABLE_NAME", "CloudSpec-lambda-runtime-undefined-sebastian-dce506d4-LambdaRuntimeTable04CE3B76-11QW0MPWUJ0MX");
 
         upload_to_s3("list-files.js", "aTenant").await;
         upload_static_to_s3("file.txt", "aTenant").await;

@@ -182,6 +182,114 @@ async fn op_byt_files_list_async(
 }
 
 
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct BytDbItem {
+    pub namespace: String,
+    pub key: String,
+    pub data: Value,
+}
+
+#[op]
+async fn op_byt_db_get_item_async(
+    state: Rc<RefCell<OpState>>,
+    namespace: String,
+    key: String,
+) -> Result<BytDbItem, AnyError> {
+    let client = {
+        // state needs to be dropped before client is used. Otherwise, the mutable borrow in deno_ffi will fail.
+        // e.g. "thread 'main' panicked at 'already borrowed: BorrowMutError'"
+        let opstate_ = state.borrow();
+        let config = opstate_.borrow::<aws_config::SdkConfig>();
+        let client = aws_sdk_dynamodb::Client::new(config);
+        client
+    };
+
+    let byt_op_config: BytOpConfig = {
+        let op_state_ = state.borrow();
+        let byt_op_config = op_state_.borrow::<BytOpConfig>();
+        byt_op_config.clone()
+    };
+
+    let pk: String = byt_op_config.tenant;
+    let sk: String = format!("{}#{}", namespace, key);
+
+    let item = client
+        .get_item()
+        .table_name(byt_op_config.ddb_table)
+        .key("PK", aws_sdk_dynamodb::model::AttributeValue::S(pk))
+        .key("SK", aws_sdk_dynamodb::model::AttributeValue::S(sk))
+        .send()
+        .await?;
+
+    let item = item.item().unwrap();
+    let result: BytDbItem = serde_dynamo::from_item(item.clone()).unwrap();
+
+    println!("result: {:?}", result);
+
+    Ok(result)
+}
+
+
+#[op]
+async fn op_byt_db_put_item_async(
+    state: Rc<RefCell<OpState>>,
+    item: BytDbItem,
+) -> Result<(), AnyError> {
+    let client = {
+        // state needs to be dropped before client is used. Otherwise, the mutable borrow in deno_ffi will fail.
+        // e.g. "thread 'main' panicked at 'already borrowed: BorrowMutError'"
+        let opstate_ = state.borrow();
+        let config = opstate_.borrow::<aws_config::SdkConfig>();
+        let client = aws_sdk_dynamodb::Client::new(config);
+        client
+    };
+
+    let byt_op_config: BytOpConfig = {
+        let op_state_ = state.borrow();
+        let byt_op_config = op_state_.borrow::<BytOpConfig>();
+        byt_op_config.clone()
+    };
+
+
+    let pk: String = byt_op_config.tenant;
+    let sk: String = format!("{}#{}", item.namespace, item.key);
+
+    println!("pk: {}", pk);
+    println!("sk: {}", sk);
+    println!("data: {}", item.data.to_string());
+
+    let item = client
+        .put_item()
+        .table_name(byt_op_config.ddb_table)
+        .item("PK", aws_sdk_dynamodb::model::AttributeValue::S(pk))
+        .item("SK", aws_sdk_dynamodb::model::AttributeValue::S(sk))
+        .item("data", aws_sdk_dynamodb::model::AttributeValue::S(item.data.to_string()))
+        .item("namespace", aws_sdk_dynamodb::model::AttributeValue::S(item.namespace))
+        .item("key", aws_sdk_dynamodb::model::AttributeValue::S(item.key))
+        .send()
+        .await?;
+
+    match item.attributes() {
+        Some(attributes) => {
+            println!("attributes: {:?}", attributes);
+        }
+        None => {
+            println!("no attributes");
+        }
+    }
+
+    match item.consumed_capacity() {
+        Some(consumed_capacity) => {
+            println!("consumed_capacity: {:?}", consumed_capacity);
+        }
+        None => {
+            println!("no consumed_capacity");
+        }
+    }
+
+    Ok(())
+}
 
 
 #[derive(Debug, Deserialize)]
@@ -213,6 +321,7 @@ pub struct RequestEvent {
 pub struct BytOpConfig {
     pub bucket: String,
     pub tenant: String,
+    pub ddb_table: String,
 }
 
 pub async fn execute_module(
@@ -230,12 +339,15 @@ pub async fn execute_module(
     });
 
     let bucket_name = std::env::var("BUCKET_NAME").unwrap();
+    let ddb_table = std::env::var("TABLE_NAME").unwrap();
 
     let runjs_extension = Extension::builder("byt")
         .ops(vec![
             op_extension_plan::decl(),
             op_byt_files_get_async::decl(),
             op_byt_files_list_async::decl(),
+            op_byt_db_put_item_async::decl(),
+            op_byt_db_get_item_async::decl(),
             op_execution_mode::decl(),
             op_extension_payload::decl(),
             op_hello_reverse::decl(),
@@ -245,6 +357,7 @@ pub async fn execute_module(
             state.put::<BytOpConfig>(BytOpConfig {
                 bucket: bucket_name.clone(),
                 tenant: event.tenant.clone(),
+                ddb_table: ddb_table.clone(),
             });
             Ok(())
         })

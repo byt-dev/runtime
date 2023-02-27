@@ -339,6 +339,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "aws-sdk-dynamodb"
+version = "0.24.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "34fc8efd8ed65312b05dc84bb0d7ba79c31802873c4b5676403e220724af39b7"
+dependencies = [
+ "aws-credential-types",
+ "aws-endpoint",
+ "aws-http",
+ "aws-sig-auth",
+ "aws-smithy-async",
+ "aws-smithy-client",
+ "aws-smithy-http",
+ "aws-smithy-http-tower",
+ "aws-smithy-json",
+ "aws-smithy-types",
+ "aws-types",
+ "bytes",
+ "fastrand",
+ "http",
+ "regex",
+ "tokio-stream",
+ "tower",
+ "tracing",
+]
+
+[[package]]
 name = "aws-sdk-s3"
 version = "0.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -874,6 +900,7 @@ name = "byt_runtime"
 version = "0.2.0"
 dependencies = [
  "aws-config",
+ "aws-sdk-dynamodb",
  "aws-sdk-s3",
  "byt_bundler",
  "deno 1.30.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -882,6 +909,7 @@ dependencies = [
  "deno_runtime 0.97.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "flate2",
  "serde",
+ "serde_dynamo",
  "tempfile",
  "tokio",
 ]
@@ -5385,6 +5413,16 @@ dependencies = [
  "proc-macro2 1.0.50",
  "quote 1.0.23",
  "syn 1.0.107",
+]
+
+[[package]]
+name = "serde_dynamo"
+version = "4.0.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "942d371dc47cb746dd7c69cf02d22967ac8031bb300cc5eeec0494fa8fe08c7e"
+dependencies = [
+ "aws-sdk-dynamodb",
+ "serde",
 ]
 
 [[package]]

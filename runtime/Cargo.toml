@@ -23,9 +23,11 @@ deno_core.workspace = true
 deno_runtime.workspace = true
 aws-config.workspace = true
 aws-sdk-s3.workspace = true
+aws-sdk-dynamodb.workspace = true
 tokio.workspace = true
 serde.workspace = true
 deno_ast.workspace = true
 byt_bundler.workspace = true
 tempfile = "3.3.0"
 flate2 = "1.0.24"
+serde_dynamo = { version = "4", features = ["aws-sdk-dynamodb+0_24"] }

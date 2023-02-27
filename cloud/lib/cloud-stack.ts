@@ -11,16 +11,22 @@ export class CloudStack extends cdk.Stack {
     super(scope, id, props);
 
     const bucket = new cdk.aws_s3.Bucket(this, "LambdaRuntimeBucket");
-    // const table = new cdk.aws_dynamodb.Table(this, "LambdaRuntimeTable", {
-    //   partitionKey: {
-    //     name: "id",
-    //     type: cdk.aws_dynamodb.AttributeType.STRING,
-    //   },
-    // });
+    const table = new cdk.aws_dynamodb.Table(this, "LambdaRuntimeTable", {
+      partitionKey: {
+        name: "PK",
+        type: cdk.aws_dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: "SK",
+        type: cdk.aws_dynamodb.AttributeType.STRING,
+      },
+      billingMode: cdk.aws_dynamodb.BillingMode.PAY_PER_REQUEST,
+      pointInTimeRecovery: true,
+    });
 
     const identity = new Identity(this, "Identity", {})
 
-    const runtime = new LambdaRuntime(this, "LambdaRuntime", { bucket });
+    const runtime = new LambdaRuntime(this, "LambdaRuntime", { bucket, table });
     const api = new Api(this, "Api", { lambda: runtime.handler });
 
     const uploadHandler = new UploadApi(this, "UploadHandler", { bucket, cognito: {

@@ -23,6 +23,7 @@ deno_core = "0.171.0"
 deno_runtime = "0.97.0"
 serde = { version = "=1.0.149", features = ["derive"] }
 aws-sdk-s3 = "0.24.0"
+aws-sdk-dynamodb = "0.24.0"
 lambda_http = { version = "0.7", default-features = false, features = ["apigw_rest"] }
 deno_ast = "0.23.0"
 
