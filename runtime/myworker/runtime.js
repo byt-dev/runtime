@@ -24,7 +24,47 @@
     }
   }
 
+  class Bucket {
+    constructor(namespace) {
+      this.namespace = namespace;
+      this.eventSource = "s3";
+      this.bindings = [];
+    }
+
+    async on(event, filter, callback) {
+      this.bindings.push({
+        namespace: this.namespace,
+        event,
+        eventSource: this.eventSource,
+        filter,
+        callback
+      });
+
+      await ops.op_byt_bindings_core_upsert_async({
+        namespace: this.namespace,
+        event,
+        eventSource: this.eventSource,
+        filter,
+      });
+    }
+
+    async dispatch(event) {
+      for (let binding of this.bindings) {
+        if (binding.event === event.type) {
+          if (binding.filter) {
+            if (binding.filter.key && binding.filter.key !== event.data.key) {
+              continue;
+            }
+          }
+
+          await binding.callback(event);
+        }
+      }
+    }
+  }
+
   globalThis.Db = Db;
+  globalThis.Bucket = Bucket;
 
   globalThis.byt = {
     getEvent: async () => {

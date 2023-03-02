@@ -5,7 +5,6 @@ use deno_core::ZeroCopyBuf;
 use deno_core::error::AnyError;
 use deno_core::op;
 use deno_core::serde::Deserialize;
-use deno_core::serde_json::Map;
 use deno_core::serde_json::Value;
 use deno_core::Extension;
 use deno_core::FsModuleLoader;
@@ -28,54 +27,6 @@ use std::sync::Arc;
 
 fn get_error_class_name(e: &AnyError) -> &'static str {
     deno_runtime::errors::get_error_class_name(e).unwrap_or("Error")
-}
-
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct ExtensionPlanArgs {
-    id: String,
-    extension_type: String,
-    // filter is a string indexed object with arbitrary keys and values.
-    filter: Map<String, Value>,
-    callback: String,
-}
-
-#[op]
-fn op_extension_plan(
-    _state: &mut OpState,
-    extension_plan: ExtensionPlanArgs,
-) -> Result<(), AnyError> {
-    // print extension plan
-    extension_plan.filter.iter().for_each(|(k, v)| {
-        println!("{}: {}", k, v);
-    });
-    println!("Extension Plan: {:?}", extension_plan);
-    Ok(())
-}
-
-#[op]
-fn op_execution_mode(_state: &mut OpState) -> Result<String, AnyError> {
-    // print extension plan
-    Ok("exec".to_string())
-}
-
-#[op]
-fn op_extension_payload(
-    _state: &mut OpState,
-    id: String,
-) -> Result<Vec<Map<String, Value>>, AnyError> {
-    // return extension payload
-    let mut payload = Map::new();
-    let mut context = Map::new();
-    payload.insert("payload".to_string(), Value::String(id));
-    context.insert("context".to_string(), Value::String('x'.to_string()));
-    Ok(vec![payload, context])
-}
-
-#[op]
-fn op_hello_reverse(input: String) -> Result<String, AnyError> {
-    println!("Hello, {}!", input);
-    Ok(input.chars().rev().collect())
 }
 
 #[op]
@@ -292,6 +243,115 @@ async fn op_byt_db_put_item_async(
 }
 
 
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct BytCoreBinding {
+    pub namespace: String,
+    pub event: String,
+    pub event_source: String,
+    pub filter: Option<Value>,
+}
+
+#[op]
+async fn op_byt_bindings_core_upsert_async(
+    state: Rc<RefCell<OpState>>,
+    item: BytCoreBinding,
+) -> Result<(), AnyError> {
+    let client = {
+        // state needs to be dropped before client is used. Otherwise, the mutable borrow in deno_ffi will fail.
+        // e.g. "thread 'main' panicked at 'already borrowed: BorrowMutError'"
+        let opstate_ = state.borrow();
+        let config = opstate_.borrow::<aws_config::SdkConfig>();
+        let client = aws_sdk_dynamodb::Client::new(config);
+        client
+    };
+
+    let byt_op_config: BytOpConfig = {
+        let op_state_ = state.borrow();
+        let byt_op_config = op_state_.borrow::<BytOpConfig>();
+        byt_op_config.clone()
+    };
+
+    let tenant = byt_op_config.tenant.clone();
+    let brn = byt_op_config.brn.clone();
+    let pk: String = brn.clone();
+    let sk: String = format!("{}#{}#{}", item.namespace, item.event_source, item.event);
+
+    println!("pk: {}", pk);
+    println!("sk: {}", sk);
+    println!("data: {:?}", item);
+
+    let item = client
+        .put_item()
+        .table_name(byt_op_config.bindings_table_name)
+        .item("PK", aws_sdk_dynamodb::model::AttributeValue::S(pk))
+        .item("SK", aws_sdk_dynamodb::model::AttributeValue::S(sk))
+        .item("event", aws_sdk_dynamodb::model::AttributeValue::S(item.event.to_string()))
+        .item("event_source", aws_sdk_dynamodb::model::AttributeValue::S(item.event_source.to_string()))
+        .item("namespace", aws_sdk_dynamodb::model::AttributeValue::S(item.namespace))
+        .item("filter", aws_sdk_dynamodb::model::AttributeValue::S(item.filter.unwrap().to_string()))
+        .item("target", aws_sdk_dynamodb::model::AttributeValue::S(brn))
+        .item("tenant", aws_sdk_dynamodb::model::AttributeValue::S(tenant))
+        .send()
+        .await?;
+
+    match item.attributes() {
+        Some(attributes) => {
+            println!("attributes: {:?}", attributes);
+        }
+        None => {
+            println!("no attributes");
+        }
+    }
+
+    match item.consumed_capacity() {
+        Some(consumed_capacity) => {
+            println!("consumed_capacity: {:?}", consumed_capacity);
+        }
+        None => {
+            println!("no consumed_capacity");
+        }
+    }
+
+    Ok(())
+}
+
+#[op]
+async fn op_byt_bindings_core_list_async(
+    state: Rc<RefCell<OpState>>,
+) -> Result<Vec<BytCoreBinding>, AnyError> {
+    let client = {
+        // state needs to be dropped before client is used. Otherwise, the mutable borrow in deno_ffi will fail.
+        // e.g. "thread 'main' panicked at 'already borrowed: BorrowMutError'"
+        let opstate_ = state.borrow();
+        let config = opstate_.borrow::<aws_config::SdkConfig>();
+        let client = aws_sdk_dynamodb::Client::new(config);
+        client
+    };
+
+    let byt_op_config: BytOpConfig = {
+        let op_state_ = state.borrow();
+        let byt_op_config = op_state_.borrow::<BytOpConfig>();
+        byt_op_config.clone()
+    };
+
+    let brn = byt_op_config.brn.clone();
+    let pk: String = brn.clone();
+
+    let items = client
+        .query()
+        .table_name(byt_op_config.bindings_table_name)
+        .key_condition_expression("PK = :pk")
+        .expression_attribute_values(":pk", aws_sdk_dynamodb::model::AttributeValue::S(pk))
+        .limit(100)
+        .send()
+        .await?;
+    let items = items.items.unwrap();
+
+    let bindings: Vec<BytCoreBinding> = serde_dynamo::from_items(items)?;
+    Ok(bindings)
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Response {
@@ -315,6 +375,7 @@ pub struct RequestEvent {
     pub headers: HashMap<String, Value>,
     pub url: Url,
     pub tenant: String,
+    pub handler: String,
 }
 
 #[derive(Debug, Serialize, Clone)]
@@ -322,6 +383,8 @@ pub struct BytOpConfig {
     pub bucket: String,
     pub tenant: String,
     pub ddb_table: String,
+    pub bindings_table_name: String,
+    pub brn: String,
 }
 
 pub async fn execute_module(
@@ -340,17 +403,17 @@ pub async fn execute_module(
 
     let bucket_name = std::env::var("BUCKET_NAME").unwrap();
     let ddb_table = std::env::var("TABLE_NAME").unwrap();
+    let bindings_table_name = std::env::var("BINDINGS_TABLE_NAME").unwrap();
+    let brn = format!("brn:byt:core:handler:{}:{}", event.tenant, event.handler);
 
     let runjs_extension = Extension::builder("byt")
         .ops(vec![
-            op_extension_plan::decl(),
             op_byt_files_get_async::decl(),
             op_byt_files_list_async::decl(),
             op_byt_db_put_item_async::decl(),
             op_byt_db_get_item_async::decl(),
-            op_execution_mode::decl(),
-            op_extension_payload::decl(),
-            op_hello_reverse::decl(),
+            op_byt_bindings_core_upsert_async::decl(),
+            op_byt_bindings_core_list_async::decl(),
         ])
         .state(move |state| {
             state.put::<aws_config::SdkConfig>(sdk_config.clone());
@@ -358,6 +421,8 @@ pub async fn execute_module(
                 bucket: bucket_name.clone(),
                 tenant: event.tenant.clone(),
                 ddb_table: ddb_table.clone(),
+                bindings_table_name: bindings_table_name.clone(),
+                brn: brn.clone(),
             });
             Ok(())
         })
@@ -480,12 +545,6 @@ mod test {
     use std::fs::read_to_string;
     use super::*;
 
-    #[test]
-    fn test_op_reverse_string() {
-        let result = op_hello_reverse::call("Hello".into()).unwrap();
-        assert_eq!(result, "olleH");
-    }
-
     #[tokio::test]
     async fn test_runtime() {
         let url = Url::from_str("http://localhost/hello").unwrap();
@@ -499,6 +558,7 @@ mod test {
             headers: HashMap::new(),
             url,
             tenant: "tenant".to_string(),
+            handler: "handler".to_string(),
         };
 
         let sdk_config = aws_config::load_from_env().await;
@@ -530,6 +590,7 @@ mod test {
             headers: HashMap::new(),
             url,
             tenant: "tenant".to_string(),
+            handler: "handler".to_string(),
         };
 
         let sdk_config = aws_config::load_from_env().await;

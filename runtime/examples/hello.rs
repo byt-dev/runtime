@@ -15,6 +15,7 @@ async fn main() -> Result<(), AnyError> {
         headers: HashMap::new(),
         url,
         tenant: "tenant".to_string(),
+        handler: "handler".to_string(),
     };
 
     let sdk_config = aws_config::load_from_env().await;

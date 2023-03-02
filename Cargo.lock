@@ -906,6 +906,7 @@ dependencies = [
  "deno 1.30.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "deno_ast",
  "deno_core 0.171.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "deno_ffi 0.76.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "deno_runtime 0.97.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "flate2",
  "serde",

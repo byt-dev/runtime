@@ -24,9 +24,22 @@ export class CloudStack extends cdk.Stack {
       pointInTimeRecovery: true,
     });
 
+    const bindings = new cdk.aws_dynamodb.Table(this, "Bindings", {
+      partitionKey: {
+        name: "PK",
+        type: cdk.aws_dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: "SK",
+        type: cdk.aws_dynamodb.AttributeType.STRING,
+      },
+      billingMode: cdk.aws_dynamodb.BillingMode.PAY_PER_REQUEST,
+      pointInTimeRecovery: true,
+    });
+
     const identity = new Identity(this, "Identity", {})
 
-    const runtime = new LambdaRuntime(this, "LambdaRuntime", { bucket, table });
+    const runtime = new LambdaRuntime(this, "LambdaRuntime", { bucket, table, bindings });
     const api = new Api(this, "Api", { lambda: runtime.handler });
 
     const uploadHandler = new UploadApi(this, "UploadHandler", { bucket, cognito: {

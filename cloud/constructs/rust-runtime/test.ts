@@ -19,10 +19,24 @@ const deploy = async () => {
     billingMode: aws_dynamodb.BillingMode.PAY_PER_REQUEST,
   });
 
+  const bindings = new aws_dynamodb.Table(cloudspec.stack, "Bindings", {
+    partitionKey: {
+      name: "PK",
+      type: aws_dynamodb.AttributeType.STRING,
+    },
+    sortKey: {
+      name: "SK",
+      type: aws_dynamodb.AttributeType.STRING,
+    },
+    billingMode: aws_dynamodb.BillingMode.PAY_PER_REQUEST,
+  });
+
   cloudspec.stack.outputs({
     BucketName: bucket.bucketName,
     TableName: table.tableName,
+    BindingsTableName: bindings.tableName,
   });
+
   return await cloudspec.deploy();
 };
 

@@ -5,6 +5,7 @@ import * as path from 'path'
 export interface LambdaRuntimeProps {
   bucket: cdk.aws_s3.IBucket;
   table: cdk.aws_dynamodb.ITable;
+  bindings: cdk.aws_dynamodb.ITable;
 }
 export class LambdaRuntime extends Construct {
   public readonly handler: lambda.Function;
@@ -12,7 +13,7 @@ export class LambdaRuntime extends Construct {
   constructor(scope: Construct, id: string, props: LambdaRuntimeProps) {
     super(scope, id);
 
-    const { bucket, table } = props;
+    const { bucket, table, bindings } = props;
 
     this.handler = new lambda.Function(this, "HelloHandler", {
       description:
@@ -28,11 +29,13 @@ export class LambdaRuntime extends Construct {
         RUST_BACKTRACE: "1",
         BUCKET_NAME: bucket.bucketName,
         TABLE_NAME: table.tableName,
+        BINDINGS_TABLE_NAME: bindings.tableName,
       },
       logRetention: cdk.aws_logs.RetentionDays.ONE_WEEK,
     });
 
     bucket.grantRead(this.handler);
     table.grantReadWriteData(this.handler);
+    bindings.grantReadWriteData(this.handler);
   }
 }

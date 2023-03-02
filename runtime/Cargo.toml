@@ -31,3 +31,4 @@ byt_bundler.workspace = true
 tempfile = "3.3.0"
 flate2 = "1.0.24"
 serde_dynamo = { version = "4", features = ["aws-sdk-dynamodb+0_24"] }
+deno_ffi = "0.76.0"
